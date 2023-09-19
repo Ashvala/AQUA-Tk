@@ -1,0 +1,6 @@
+numpy~=1.21.6
+setuptools~=60.5.0
+textual~=0.37.1
+openl3~=0.4.0
+tqdm~=4.66.1
+panns-inference~=0.1.1
