@@ -5,3 +5,4 @@ openl3~=0.4.0
 tqdm~=4.66.1
 panns-inference~=0.1.1
 jukemirlib @ pip install git+https://github.com/rodrigo-castellon/jukemirlib.git
+scikit-learn

@@ -1,4 +1,4 @@
-from extractor import Extractor
+from .extractor import Extractor
 from tqdm import tqdm
 import soundfile as sf
 

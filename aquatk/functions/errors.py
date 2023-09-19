@@ -18,7 +18,7 @@ def mean_absolute_error(x, y):
     :param y: A vector of true values
     :return:
     """
-    return (x - y).abs().mean()
+    return np.abs(x - y).mean()
 
 
 def lp_distance(x, y, p=1):
@@ -31,15 +31,6 @@ def lp_distance(x, y, p=1):
     """
     return ((y - x) ** p).mean() ** (1 / p)
 
-
-def max_norm(x, y):
-    """
-    $l_\infty$ norm
-    :param x:
-    :param y:
-    :return:
-    """
-    return (y - x).abs().max()
 
 
 def cosine_similarity(x, y):
