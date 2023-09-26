@@ -18,14 +18,11 @@ def bandwidth(processing, out={"sumBandwidthRefb": 0, "sumBandwidthTestb": 0, "c
 
 
     ZeroThreshold = 20.0 * log10(ffttest[ZEROTHRESHOLD])
-    print("ZeroThreshold", ZeroThreshold)    
     # Step 2: Update ZeroThreshold
     for k in range(ZEROTHRESHOLD, int(hann / 2)):
         Flevtest = 20.0 * np.log10(float(ffttest[k]))        
         if Flevtest > ZeroThreshold:
             ZeroThreshold = Flevtest
-
-    print("ZeroThreshold", ZeroThreshold)
 
     for k in range(ZEROTHRESHOLD - 1, -1, -1):
         Flevref = 20.0 * np.log10(float(fftref[k]))
@@ -63,7 +60,9 @@ def bandwidth(processing, out={"sumBandwidthRefb": 0, "sumBandwidthTestb": 0, "c
     return out
 
 
-def nmr(processing, block_idx):
+def nmr(processing, state):
+    block_idx = state["count"]
+    nmrtmp = state["nmrtmp"]
     PNoise = processing.ppnoise
     M = processing.Mref
     sum_val = np.sum(PNoise / M)
@@ -71,7 +70,8 @@ def nmr(processing, block_idx):
     nmrtmp += sum_val
     return 10 * np.log10(nmrtmp/block_idx), nmrtmp
 
-def reldistframes(processing, block_idx):
+def reldistframes(processing, state):
+    block_idx = state["count"]
     PNoise = processing.ppnoise
     M = processing.Mref
     reldisttemp = 0
@@ -93,9 +93,12 @@ def energyth(test, ref, hann=2048, ENERGYLIMIT=8000):
     
     return 0
 
-def harmstruct(processing, EHStmp, Cffttmp, n, rate=16000, harmsamples=1024):
+def harmstruct(processing, state, rate=16000, harmsamples=1024):
     fftref = processing.fftref
     ffttest = processing.ffttest
+    EHStmp = state["EHStmp"]
+    Cffttmp = state["Cffttmp"]
+    n = state["count"]
     # Initialize variables
     F0 = np.zeros(harmsamples)
     C = np.zeros(harmsamples)
@@ -144,14 +147,13 @@ def harmstruct(processing, EHStmp, Cffttmp, n, rate=16000, harmsamples=1024):
 
 
 
-def moddiff(Modtest, Modref, Etilderef):
+def moddiff(Modtest, Modref, Etilderef, fC):
     ModDiff1 = 0
     ModDiff2 = 0
     TempWt = 0
     
     for k in range(bark):
-        ModDiff1 += np.abs(Modtest[k] - Modref[k]) / (1.0 + Modref[k])
-        
+        ModDiff1 += np.abs(Modtest[k] - Modref[k]) / (1.0 + Modref[k])        
         if Modtest[k] > Modref[k]:
             ModDiff2 += np.abs(Modtest[k] - Modref[k]) / (0.01 + Modref[k])
         else:
@@ -171,24 +173,34 @@ class ModDiffOut:
         self.ModDiff2 = ModDiff2
         self.TempWt = TempWt
 
+    def __repr__(self):
+        return f"ModDiffOut(ModDiff1={self.ModDiff1}, ModDiff2={self.ModDiff2}, TempWt={self.TempWt})"
+
 # Define ModDiffIn class
 class ModDiffIn:
-    def __init__(self, L: int=4):
+    def __init__(self, L: int=4, num2: int=0, denom2: int=0, num3: int=0, denom3: int=0):
         self.L = L
         self.Lcount = 0
         self.mod = [0.0] * L
         self.modtmp = 0.0
         self.win = 0.0
+        self.num2 = 0
+        self.denom2 = 0
+        self.num3 = 0
+        self.denom3 = 0
+
+    def __repr__(self):
+        return f"ModDiffIn(L={self.L}, Lcount={self.Lcount}, mod={self.mod}, modtmp={self.modtmp}, win={self.win}, num2={self.num2}, denom2={self.denom2}, num3={self.num3}, denom3={self.denom3})"
 
 # Define the function ModDiff1
-def ModDiff1(in_vals: ModDiffOut, intmp: ModDiffIn, n: int) -> float:
+def ModDiff1(in_vals: ModDiffOut, intmp: ModDiffIn, n: int):
     intmp.mod[intmp.Lcount] = in_vals.ModDiff1
     intmp.Lcount += 1
     if intmp.Lcount == intmp.L:
         intmp.Lcount = 0
 
     if n < intmp.L:
-        return 0.0
+        return 0.0, intmp
 
     intmp.modtmp = 0.0
     for i in range(intmp.L):
@@ -196,16 +208,16 @@ def ModDiff1(in_vals: ModDiffOut, intmp: ModDiffIn, n: int) -> float:
 
     intmp.modtmp /= intmp.L
 
-    intmp.win += intmp.modtmp ** 4.0
+    intmp.win += intmp.modtmp ** 4.0    
+    winmoddiff = sqrt(intmp.win / (n - intmp.L + 1.0))
+    return winmoddiff, intmp
 
-    return sqrt(intmp.win / (n - intmp.L + 1.0))
-
-def ModDiff2(mod_diff_out: ModDiffOut, mod_diff_in: ModDiffIn) -> float:
+def ModDiff2(mod_diff_out: ModDiffOut, mod_diff_in: ModDiffIn) -> (float, ModDiffIn):
     mod_diff_in.num2 += mod_diff_out.ModDiff1 * mod_diff_out.TempWt
     mod_diff_in.denom2 += mod_diff_out.TempWt
-    return mod_diff_in.num2 / mod_diff_in.denom2
+    return mod_diff_in.num2 / mod_diff_in.denom2, mod_diff_in
 
-def ModDiff3(mod_diff_out: ModDiffOut, mod_diff_in: ModDiffIn) -> Any:
+def ModDiff3(mod_diff_out: ModDiffOut, mod_diff_in: ModDiffIn) -> tuple:
     """
     Translated ModDiff3 function from C to Python
     
@@ -258,20 +270,33 @@ class LevPatAdaptIn:
         self.PattCorrTest = [0.0] * bark
         self.PattCorrRef = [0.0] * bark
 
-class LevPatAdaptOut(NamedTuple):
-    Epref: List[float]
-    Eptest: List[float]
+@dataclass
+class LevPatAdaptOut:
+    def __init__(self, Epref: np.ndarray, Eptest: np.ndarray):
+        self.Epref = Epref
+        self.Eptest = Eptest
+
+    def __getitem__(self, key):
+        if key == "Epref":
+            return self.Epref
+        elif key == "Eptest":
+            return self.Eptest
+        else:
+            return KeyError
 
 
-def levpatadapt(Etest: List[float], Eref: List[float], rate: int, 
-                tmp: LevPatAdaptIn, hann: int, fC: List[float], 
-                Tmin: float, T100: float, M1: int, M2: int) -> LevPatAdaptOut:
+def levpatadapt(Etest: np.ndarray, Eref: np.ndarray, rate: int, 
+                tmp: LevPatAdaptIn, hann: int, fC: float, 
+                Tmin: float, T100: float) -> LevPatAdaptOut:
     
+    M = 8
+    M1 = M/2 - 1
+    M2 = M/2
     bark = len(Etest)  # Assuming Etest and Eref have the same length as bark
     Epref = [0.0] * bark
     Eptest = [0.0] * bark
-    Rtest = [1.0] * bark  # Initialize Rtest and Rref as arrays
-    Rref = [1.0] * bark
+    Rtest = np.ones(bark)
+    Rref = np.ones(bark)
 
     numlevcorr = 0.0
     denomlevcorr = 0.0
@@ -302,6 +327,8 @@ def levpatadapt(Etest: List[float], Eref: List[float], rate: int,
         Rref[k] = R if R < 1.0 else 1.0
         
         m1, m2 = min(M1, k), min(M2, bark - k - 1)
+        m1 = int(m1)
+        m2 = int(m2)
         pattcoefftest = sum(Rtest[k + i] for i in range(-m1, m2 + 1))
         pattcoeffref = sum(Rref[k + i] for i in range(-m1, m2 + 1))
         
@@ -311,12 +338,19 @@ def levpatadapt(Etest: List[float], Eref: List[float], rate: int,
         Epref[k] = Elref * tmp.PattCorrRef[k]
         Eptest[k] = Eltest * tmp.PattCorrTest[k]
         
-    return LevPatAdaptOut(Epref, Eptest)
+    return LevPatAdaptOut(Epref=Epref, Eptest=Eptest)
 
 
 
 
-def noiseloudness(Modtest, Modref, lev, nltmp, n):
+def noiseloudness(Modtest, Modref, lev, nltmp, n, fC):
+    
+    THRESFAC0 = 0.15
+    S0 = 0.5
+    E0 = 1.0
+    ALPHA = 1.5
+    
+
     nl = 0
     for k in range(BARK):
         Pthres = 10**(0.4 * 0.364 * (fC[k] / 1000)**(-0.8))
@@ -343,5 +377,52 @@ def noiseloudness(Modtest, Modref, lev, nltmp, n):
         nl = 0
 
     nltmp += nl ** 2
-    return np.sqrt(nltmp / n)
+    return np.sqrt(nltmp / n), nltmp
 
+
+s_f = lambda L: 5.95072*p(6.39468/L, 1.71332)+9.01033*p(10.0, -11.0)*p(L, 4.0)+5.05622*p(10.0, -6.0)*p(L, 3.0)-0.00102438*p(L, 2.0)+0.0550197*L-0.198719
+
+def detprob(Etestch1, Erefch1, state, hann=HANN, bark=BARK):
+    prod = 1.0
+    Q = 0.0
+    Qsum = state["QSum"]
+    PMtmp = state["PMtmp"]
+    Ptildetemp = state["Ptildetemp"]
+    ndistorcedtmp = state["ndistorcedtmp"]
+
+    for k in range(bark):
+        Etildetestch1 = 10.0 * np.log10(Etestch1[k])
+        Etilderefch1 = 10.0 * np.log10(Erefch1[k])
+        L = 0.3 * max(Etilderefch1, Etildetestch1) + 0.7 * Etildetestch1
+        s = s_f(L)
+        e = Etilderefch1 - Etildetestch1
+        b = 4.0 if Etilderefch1 > Etildetestch1 else 6.0
+        a = p(10.0, np.log10(np.log10(2.0)) / b) / s
+        pch1 = 1.0 - p(10.0, -p(a * e, b))
+        qch1 = abs(e) / s
+
+        pbin = pch1
+        qbin = qch1
+       
+
+        prod *= (1.0 - pbin)
+        Q += qbin
+
+    P = 1.0 - prod
+    if P > 0.5:
+        Qsum += Q
+        ndistorcedtmp += 1
+
+    if ndistorcedtmp == 0:
+        ADBb = 0
+    elif Qsum > 0:
+        ADBb = np.log10(Qsum / ndistorcedtmp)
+    else:
+        ADBb = -0.5
+
+    c0 = p(0.9, hann / (2.0 * 1024.0))
+    c1 = p(0.99, hann / (2.0 * 1024.0))  # Assuming C1 is not defined
+    Ptildetemp = (1.0 - c0) * P + Ptildetemp * c0
+    PMtmp = max(Ptildetemp, PMtmp * c1)
+
+    return ADBb, PMtmp, Ptildetemp, Qsum, ndistorcedtmp

@@ -75,3 +75,42 @@ class Levpatadaptin:
     PattCorrRef: np.ndarray
     Rnum: np.ndarray
     Rdenom: np.ndarray
+
+  
+@dataclass
+class MOV:
+    WinModDiff1b: float = 0
+    AvgModDiff1b: float = 0
+    AvgModDiff2b: float = 0
+    RmsNoiseLoudb: float = 0
+    BandwidthRefb: float = 0 
+    BandwidthTestb: float = 0
+    TotalNMRb: float = 0 
+    RelDistFramesb: float = 0
+    ADBb: float = 0 
+    MFPDb: float = 0 
+    EHSb: float = 0
+
+    def __repr__(self):
+        return f'''MOV:
+        WinModDiff1b: {self.WinModDiff1b}
+        AvgModDiff1b: {self.AvgModDiff1b}
+        AvgModDiff2b: {self.AvgModDiff2b}
+        RmsNoiseLoudb: {self.RmsNoiseLoudb}
+        BandwidthRefb: {self.BandwidthRefb}
+        BandwidthTestb: {self.BandwidthTestb}
+        TotalNMRb: {self.TotalNMRb}
+        RelDistFramesb: {self.RelDistFramesb}
+        ADBb: {self.ADBb}
+        MFPDb: {self.MFPDb}
+        EHSb: {self.EHSb}
+        '''
+
+    def update(self, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+    
+    def to_dict(self):
+        return { k: getattr(self, k) for k in self.__dict__}
+
+    

@@ -1,11 +1,11 @@
 import numpy as np
 from fft_ear_model import earmodelfft
 from create_bark import calculate_bark_bands
-from utils import p, BARK
+from utils import p, BARK, HANN
 from numba import njit
 
-@njit
-def critbandgroup(ffte, rate, hann, bark_table, bark=109):
+
+def critbandgroup(ffte, rate, hann=HANN, bark=109, bark_table=None):
     p = lambda x, y: x ** y
     fC, fL, fU = bark_table    
     fres = rate / hann
