@@ -37,8 +37,6 @@ def neural(processed):
 
     sum1 = np.dot(x_norm, wx)  
     hidden_output = sigmoid(sum1)
-    
-    
     sum2 = np.dot(wy[:-1], hidden_output)  
     DI = wy[-1] + sum2  
     ODG = bmin + (bmax - bmin) * sigmoid(DI)
