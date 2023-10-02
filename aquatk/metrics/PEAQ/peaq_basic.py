@@ -82,7 +82,7 @@ def process_audio_block(ch1ref, ch1test, rate=16000, hann=HANN, lpref=92, lptest
         movs.update(RelDistFramesb=reldist)
         state['countboundary'] += 1
         if (energyth(test=ch1test, ref=ch1ref)):            
-            hs, ehstmp = harmstruct(proc, state)
+            hs, ehstmp = harmstruct(proc, state, )
             movs.update(EHSb=hs)
 
     if state['count'] > delaytime2:
@@ -127,28 +127,9 @@ def process_audio_block(ch1ref, ch1test, rate=16000, hann=HANN, lpref=92, lptest
     DI = neural_out["DI"]
     ODG = neural_out["ODG"]
     return proc, state, movs, DI, ODG
-    
 
-
-if __name__ == "__main__":
-    ref_blocks = []
-    test_blocks = []
-    ref_file = SoundFile("ref.wav")
-    test_file = SoundFile("test.wav")
-    ref_subtype = ref_file.subtype
-    test_subtype = test_file.subtype
-    ref_rate = ref_file.samplerate
-    test_rate = test_file.samplerate
-    
-    ref_blocks = read_wav_blocks("ref.wav")
-    test_blocks = read_wav_blocks("test.wav")
-
-    ref_blocks = np.array(ref_blocks)
-    test_blocks = np.array(test_blocks)
-
-    blocked_processed_outs = []
-    
-    state = {
+def init_state():
+    return {
         'countboundary': 1,
         'RelDistFramesb': 0,
         'nmrtmp': 0,
@@ -172,7 +153,28 @@ if __name__ == "__main__":
         "QSum": 0,
         "ndistorcedtmp": 0,
         "Cffttmp": np.zeros(1024),
-    }       
+    }
+
+
+if __name__ == "__main__":
+    ref_blocks = []
+    test_blocks = []
+    ref_file = SoundFile("ref.wav")
+    test_file = SoundFile("test.wav")
+    ref_subtype = ref_file.subtype
+    test_subtype = test_file.subtype
+    ref_rate = ref_file.samplerate
+    test_rate = test_file.samplerate
+    
+    ref_blocks = read_wav_blocks("ref.wav")
+    test_blocks = read_wav_blocks("test.wav")
+
+    ref_blocks = np.array(ref_blocks)
+    test_blocks = np.array(test_blocks)
+
+    blocked_processed_outs = []
+    
+    state = init_state()
 
     num_blocks = len(ref_blocks)
     #while state["count"] < num_blocks:

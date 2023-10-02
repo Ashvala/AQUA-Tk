@@ -1,9 +1,11 @@
 from .extractor import Extractor
 from tqdm import tqdm
 import soundfile as sf
+import numpy as np
+import os
 
 class OpenL3(Extractor):
-    def __init__(self, emb_size=512, content_type="music", verbose=False):
+    def __init__(self, emb_size=512, content_type="music", verbose=True):
         super(OpenL3, self).__init__()
         assert emb_size in [512, 6144]
         self.emb_size = emb_size
@@ -17,6 +19,7 @@ class OpenL3(Extractor):
 
     def get_embeddings(self, x, sr=16000):
         emb_list = []
+        print("[OpenL3] Extracting embeddings...")
         import openl3
         if isinstance(x, list):
             # this implies that the input is a list of audio signals

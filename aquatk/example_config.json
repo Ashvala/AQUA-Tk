@@ -1,0 +1,19 @@
+{
+    "reference_dir": "/Users/Ashvala/nsynth_reference",
+    "sr": 16000,
+    "metrics": [
+        "fad",
+        "kd",
+        "mse",
+        "mae"
+    ],
+    "embeddings": [        
+        "panns"
+    ],
+    
+    "evaluate": {
+        "diffwave": {
+            "gen_dir": "/Users/Ashvala/diffwave_output"            
+        }
+    }    
+}

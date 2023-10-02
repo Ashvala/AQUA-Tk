@@ -6,6 +6,7 @@ class Extractor(ABC):
     def __init__(self, *args, **kwargs):
         """
         Initialize the extractor
+        Inspired heavily by https://github.com/gudgud96/frechet-audio-distance/
         :param args: Some arguments you can pass in
         :param kwargs: Some keyword arguments you can pass in
         """
