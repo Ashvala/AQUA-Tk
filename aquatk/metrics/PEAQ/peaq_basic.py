@@ -30,7 +30,8 @@ def boundary(ch1ref, ch1test, rate, hann=HANN, BOUNDLIMIT=200, BOUNDWIN=5):
     
 
 def process_audio_block(ch1ref, ch1test, rate=16000, hann=HANN, lpref=92, lptest=92, state={}, boundflag=0):
-    fC, fL, fR = calculate_bark_bands(80, 18000)
+    fC, fL, fR = calculate_bark_bands(80, 8000)
+    print(len(fC))
     harm_samples = 1
     while harm_samples < (18000/test_rate) * (HANN/4):
         harm_samples *= 2
@@ -167,7 +168,7 @@ if __name__ == "__main__":
     test_rate = test_file.samplerate
     
     ref_blocks = read_wav_blocks("ref.wav")
-    test_blocks = read_wav_blocks("test.wav")
+    test_blocks = read_wav_blocks("ref.wav")
 
     ref_blocks = np.array(ref_blocks)
     test_blocks = np.array(test_blocks)

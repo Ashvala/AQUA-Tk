@@ -19,7 +19,7 @@ def safe_pow(x, y):
 p = lambda x, y: safe_pow(x, y)
 
 HANN = 2048
-BARK = 109
+BARK = 87
 THRESHOLDDELAY = 0.050
 AVERAGINGDELAY = 0.5
 

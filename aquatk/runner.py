@@ -1,7 +1,8 @@
 from embedding_extractors import OpenL3, PANNs
 from functools import partial
 from multiprocessing import Pool
-from metrics import * 
+from metrics import *
+
 
 class Task:
     def __init__(self, func, args, kwargs, name):
@@ -51,7 +52,6 @@ def run_pipeline(pipeline, n_jobs=1):
     runner.run(pipeline.tasks)
 
 
-
 embedding_map = {
     "openl3": OpenL3,
     "panns": PANNs
@@ -66,23 +66,26 @@ metric_map = {
     "kld": kl_divergence
 }
 
-
 embedding_distances = ["fad", "kd"]
+
 
 def get_embedding_extractor(name, **kwargs):
     return embedding_map[name](**kwargs)
 
+
 def get_metric(name, **kwargs):
     return metric_map[name]
+
 
 def generic_embedding_distance(embedding_extractor="panns", metric="fad", reference_dir=None, gen_dir=None, kwargs={}):
     embedding_extractor = get_embedding_extractor(embedding_extractor)
     metric = get_metric(metric)
-    ref_feats = np.array(list(Task(embedding_extractor.get_embeddings, [reference_dir], kwargs, "extract_ref").execute()))
-    ref_feats = ref_feats.reshape(-1, ref_feats.shape[2])    
+    ref_feats = np.array(
+        list(Task(embedding_extractor.get_embeddings, [reference_dir], kwargs, "extract_ref").execute()))
+    ref_feats = ref_feats.reshape(-1, ref_feats.shape[2])
     gen_feats = np.array(list(Task(embedding_extractor.get_embeddings, [gen_dir], kwargs, "extract_gen").execute()))
     gen_feats = gen_feats.reshape(-1, gen_feats.shape[2])
-    
+
     distance_task = Task(metric, [ref_feats, gen_feats], {}, "distance")
     distance = distance_task.execute()
     return distance

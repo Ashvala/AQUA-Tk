@@ -5,7 +5,7 @@ from utils import p, BARK, HANN
 from numba import njit
 
 
-def critbandgroup(ffte, rate, hann=HANN, bark=109, bark_table=None):
+def critbandgroup(ffte, rate, hann=HANN, bark=87, bark_table=None):
     p = lambda x, y: x ** y
     fC, fL, fU = bark_table    
     fres = rate / hann

@@ -58,4 +58,40 @@ def kl_divergence(p, q):
     return np.sum(p[p_pos] * np.log(p[p_pos] / q[p_pos]))
 
 
+def snr(reference: np.ndarray, generated: np.ndarray) -> float:
+    eps = 1e-10
+    reference = reference - np.mean(reference)
+    generated = generated - np.mean(generated)
 
+    noise = reference - generated
+
+    snr = (np.sum(reference**2) + eps) / (np.sum(noise**2) + eps)
+    snr = 10 * np.log10(snr)
+    return snr
+
+def si_sdr(reference: np.ndarray, generated: np.ndarray) -> float:
+    eps = 1e-10
+    reference = reference - np.mean(reference)
+    generated = generated - np.mean(generated)
+
+    # compute the scale factor
+    scale = np.sum(reference * generated) / (np.sum(generated * generated) + eps)
+
+    # scale the generated signal
+    generated = scale * generated
+
+    # compute the SDR
+    s_target = np.sum(reference * generated)
+    e_noise = np.sum(reference * reference) - s_target
+    sdr = (s_target + eps) / (e_noise + eps)
+    sdr = 10 * np.log10(sdr)
+    return sdr
+
+def rms(signal: np.ndarray):
+    return np.sqrt(np.mean(signal**2))
+
+
+def adjusted_rms(clean_rms, snr_level) -> float:
+    a = snr_level / 20
+    noise_rms = clean_rms / (10**a)
+    return noise_rms
