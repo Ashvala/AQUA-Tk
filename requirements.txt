@@ -6,3 +6,7 @@ panns-inference~=0.1.1
 jukemirlib @ pip install git+https://github.com/rodrigo-castellon/jukemirlib.git
 scikit-learn
 streamlit
+tensorflow
+tf_slim
+six
+soundfile

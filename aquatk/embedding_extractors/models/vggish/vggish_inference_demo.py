@@ -98,6 +98,7 @@ def main(_):
   examples_batch = vggish_input.wavfile_to_examples(wav_file)
   print(examples_batch)
   print(type(examples_batch), ":: Type")
+  print(examples_batch.shape, ":: Shape")
 
   # Prepare a postprocessor to munge the model embeddings.
   pproc = vggish_postprocess.Postprocessor(FLAGS.pca_params)
