@@ -3,6 +3,7 @@
 
 **Still in development**
 
+![Logo](./logo.png)
 
 AquaTK is short for "Audio QUality Assessment Toolkit". It contains metrics that are popularly used in the evaluation of Neural Audio Synthesizers such as FAD and Kernel Distances. It also contains a pure python port of PEAQb, a C implementation of the Basic PEAQ algorithm. 
 
