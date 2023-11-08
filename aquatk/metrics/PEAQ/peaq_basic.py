@@ -61,7 +61,7 @@ def process_audio_block(ch1ref, ch1test, rate=16000, hann=HANN, lpref=92, lptest
     test_modulationIn = ModulationIn(e2_tmp=Etmptest, etilde_tmp=Etmptest, eder_tmp=np.zeros_like(Etmptest))
     ref_modulationIn = ModulationIn(e2_tmp=Etmpref, etilde_tmp=Etmpref, eder_tmp=np.zeros_like(Etmpref))
     Modtest, test_modulationIn = modulation(E2test, rate, in_struct=test_modulationIn, fC=fC)
-    Modref, test_modulationOut = modulation(E2ref, rate, in_struct=ref_modulationIn, fC=fC)
+    Modref, _ = modulation(E2ref, rate, in_struct=ref_modulationIn, fC=fC)
     
     proc = Processing(fftref, ffttest, ffteref, fftetest, fnoise, 
                       pptest, ppref, ppnoise, E2test, E2ref, 
