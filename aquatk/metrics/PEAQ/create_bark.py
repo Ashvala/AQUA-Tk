@@ -5,6 +5,11 @@ BI = lambda z: 650 * np.sinh(z / 7.0)
 
 
 def calculate_bark_bands(f_low, f_high, dz=0.25):
+    """ 
+    Bark scale generator
+    :param f_low: lower frequency bound
+    :param f_high: higher frequency bound
+    """
     zL = B(f_low)
     zU = B(f_high)
     bark = int(np.ceil((zU - zL) / dz))

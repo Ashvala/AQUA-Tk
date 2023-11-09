@@ -4,6 +4,11 @@ from utils import BARK as bark
 
 
 def spreading(pp, fC, dz=0.25):
+    """ 
+    Spreading function
+    :param pp: power spectrum
+    :param fC: center frequency for each bark band
+    """
     
     Sl = 27.0  # Lower spreading constant
 

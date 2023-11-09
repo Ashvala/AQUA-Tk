@@ -27,6 +27,10 @@ def sigmoid(x):
 
 
 def neural(processed):
+    """ 
+    Neural network. Yes, this is it! 
+    :param processed: processed data/all the MOVs
+    """
     x = np.array([processed["BandwidthRefb"], processed["BandwidthTestb"], processed["TotalNMRb"],
                   processed["WinModDiff1b"], processed["ADBb"], processed["EHSb"], processed["AvgModDiff1b"],
                   processed["AvgModDiff2b"], processed["RmsNoiseLoudb"], processed["MFPDb"], processed["RelDistFramesb"]])

@@ -31,7 +31,6 @@ def boundary(ch1ref, ch1test, rate, hann=HANN, BOUNDLIMIT=200, BOUNDWIN=5):
 
 def process_audio_block(ch1ref, ch1test, rate=16000, hann=HANN, lpref=92, lptest=92, state={}, boundflag=0):
     fC, fL, fR = calculate_bark_bands(80, 8000)
-    print(len(fC))
     harm_samples = 1
     while harm_samples < (18000/test_rate) * (HANN/4):
         harm_samples *= 2

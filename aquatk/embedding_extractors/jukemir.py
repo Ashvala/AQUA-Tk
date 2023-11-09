@@ -1,3 +1,8 @@
+try:
+    import jukemirlib
+except ImportError:
+    print("Please install jukemirlib from https://github.com/rodrigo-castellon/jukemirlib")
+
 from .extractor import Extractor
 from tqdm import tqdm
 import soundfile as sf
@@ -14,7 +19,6 @@ class JukeMIR(Extractor):
         self.fp16_out = fp16_out
 
     def get_embeddings(self, x, sr=16000):
-        import jukemirlib
         emb_list = []
         if isinstance(x, list):
             try:
@@ -39,5 +43,5 @@ class JukeMIR(Extractor):
 
     def cleanup(self):
         # clear the gpu memory
-        import torch
-        torch.cuda.empty_cache()
+        import aquatk.torch_interface as torch_interface
+        torch_interface.cuda.empty_cache()

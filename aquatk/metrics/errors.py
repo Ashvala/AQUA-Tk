@@ -16,7 +16,6 @@ def mean_absolute_error(x, y):
     Compute the Mean Absolute Error
     :param x: A vector of predictions
     :param y: A vector of true values
-    :return:
     """
     return np.abs(x - y).mean()
 
@@ -27,7 +26,6 @@ def lp_distance(x, y, p=1):
     :param x: A vector of predictions
     :param y: A vector of true values
     :param p: p=1: Manhattan distance, p=2: Euclidean distance
-    :return:
     """
     return ((y - x) ** p).mean() ** (1 / p)
 
@@ -45,11 +43,11 @@ def cosine_similarity(x, y):
 
 def kl_divergence(p, q):
     """
-        The Kullback–Leibler divergence.
-        Defined only if q != 0 whenever p != 0.
-    
-        Remember it's not symmetric!
-        """
+    The Kullback–Leibler divergence.
+    Defined only if q != 0 whenever p != 0.
+
+    Remember it's not symmetric!
+    """
     assert np.all(np.isfinite(p))
     assert np.all(np.isfinite(q))
     assert not np.any(np.logical_and(p != 0, q == 0))
@@ -58,7 +56,13 @@ def kl_divergence(p, q):
     return np.sum(p[p_pos] * np.log(p[p_pos] / q[p_pos]))
 
 
-def snr(reference: np.ndarray, generated: np.ndarray) -> float:
+def snr(reference: np.ndarray, generated: np.ndarray):
+    """
+        SNR is Signal to Noise Ratio
+        :param reference: A vector of reference values
+        :param generated: A vector of generated values
+
+    """
     eps = 1e-10
     reference = reference - np.mean(reference)
     generated = generated - np.mean(generated)
@@ -69,7 +73,13 @@ def snr(reference: np.ndarray, generated: np.ndarray) -> float:
     snr = 10 * np.log10(snr)
     return snr
 
-def si_sdr(reference: np.ndarray, generated: np.ndarray) -> float:
+def si_sdr(reference: np.ndarray, generated: np.ndarray):
+    """
+        SISDR is Scale-Invariant Signal to Distortion Ratio
+        :param reference: A vector of reference values
+        :param generated: A vector of generated values
+
+    """
     eps = 1e-10
     reference = reference - np.mean(reference)
     generated = generated - np.mean(generated)

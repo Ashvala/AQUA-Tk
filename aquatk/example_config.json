@@ -1,5 +1,5 @@
 {
-    "reference_dir": "/Users/Ashvala/nsynth_reference",
+    "reference_dir": "/Users/ashvala/Projects/gatech/PhD/AquaTk/aquatk/toy_dataset/ref",
     "sr": 16000,
     "metrics": [
         "fad",
@@ -7,13 +7,14 @@
         "mse",
         "mae"
     ],
-    "embeddings": [        
+    "embeddings": [       
+        "vggish",
         "panns"
     ],
     
     "evaluate": {
         "diffwave": {
-            "gen_dir": "/Users/Ashvala/diffwave_output"            
+            "gen_dir": "/Users/ashvala/Projects/gatech/PhD/AquaTk/aquatk/toy_dataset/noise"            
         }
     }    
 }
