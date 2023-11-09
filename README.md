@@ -21,6 +21,7 @@ Currently implemented metrics:
 | MSE | Mean Squared Error              |
 | KL | Kullback-Leibler Divergence     |
 
+
 ## Installation
 
 You can install this repo using Git for now. PyPi support is coming soon:
