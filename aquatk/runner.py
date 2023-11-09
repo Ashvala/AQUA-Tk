@@ -1,4 +1,4 @@
-from embedding_extractors import OpenL3, PANNs
+from embedding_extractors import OpenL3, PANNs, VGGish
 from functools import partial
 from multiprocessing import Pool
 from metrics import *
@@ -54,7 +54,8 @@ def run_pipeline(pipeline, n_jobs=1):
 
 embedding_map = {
     "openl3": OpenL3,
-    "panns": PANNs
+    "panns": PANNs,
+    "vggish": VGGish,
 }
 
 metric_map = {
@@ -150,7 +151,10 @@ def run(configuration, st=False):
         if metric in embedding_distances: 
             for emb in configuration.embeddings:
                 out = generic_embedding_distance(embedding_extractor=emb, metric=metric, reference_dir=configuration.reference_dir, gen_dir=configuration.gen_dir)
-                print(out)
+                if not st: 
+                    print(out)
+                else: 
+                    st.write(f"{metric} {emb} {out}")
                 metric_outs.append({"metric": metric, "embedding": emb, "output": out})
         elif metric == "PEAQ":
             print("PEAQ is unstable. Use PEAQ through the peaq_basic command in the PEAQ folder.")

@@ -19,6 +19,13 @@ class ModulationIn:
 
 
 def modulation(E2, rate, in_struct, fC):
+    """
+    Compute ear modulation
+    :param E2: power spectrum
+    :param rate: sampling rate
+    :param in_struct: modulation input structure
+    :param fC: center frequency for each bark band
+    """
     Mod = np.zeros(bark)
     for k in range(bark):
         T = Tmin + (100.0 / fC[k]) * (T100 - Tmin)

@@ -29,31 +29,9 @@ metric_map = {
     "MAE": "mae",    
 }
 
+test_table = [{"embedding": "panns", "metric": "fad", "output": 0.1}, {"embedding": "", "metric": "fad", "output": 0.1}, {"embedding": "vggish", "metric": "fad", "output": 0.1}]
 
-def create_conf(dirs, metrics, embeddings): 
-    '''
-        Return a JSON of format
-        
-
-{
-    "reference_dir": "/Users/Ashvala/nsynth_reference",
-    "sr": 16000,
-    "metrics": [
-        "fad",
-        "kd",
-        "mse",
-        "mae"
-    ],
-    "embeddings": [        
-        "panns"
-    ],
-    
-    "evaluate": {
-        "diffwave": {
-            "gen_dir": "/Users/Ashvala/diffwave_output"            
-        }
-    }    
-    '''
+def create_conf(dirs, metrics, embeddings):
     reference_dir = dirs[0]
     sr = 16000
     metrics = metrics
@@ -80,7 +58,14 @@ if st.sidebar.button("Evaluate!"):
     st.write(cfg)
     cfg_outs = []
     for cfg in cfg:
-        cfg_outs.append(run(cfg))
-
+        cfg_outs.append(run(cfg, st=st))    
+    # compile table from array of json objects.
     st.write(cfg_outs)
+    metric_table = {}
+    for cfg in cfg_outs:
+        for metric in cfg.metrics:
+            if metric not in metric_table:
+                metric_table[metric] = []
+            metric_table[metric].append(cfg.metrics[metric])
 
+    st.write(metric_table)

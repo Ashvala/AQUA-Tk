@@ -1,23 +1,28 @@
 import numpy as np
-import models.vggish
-from models.vggish import vggish_input, vggish_params, vggish_postprocess, vggish_slim, mel_features
+from .models.vggish import vggish_input, vggish_params, vggish_postprocess, vggish_slim, mel_features
 import tensorflow.compat.v1 as tf
 import six
 import soundfile
-from extractor import Extractor
+from .extractor import Extractor
 from tqdm import tqdm
 from joblib import Parallel, delayed
 import os
 
 
 class VGGish(Extractor):
-    def __init__(self, verbose=True):
+    def __init__(self, verbose=True, checkpoint_path=None, pca_params_path=None):
         super(VGGish, self).__init__()
 
         # get relative path to the checkpoint and pca_params. Theyre in ./models/
         root_dir = os.path.dirname(os.path.abspath(__file__))
-        self.checkpoint = os.path.join(root_dir, 'models/vggish/vggish_model.ckpt')
-        self.pca_params = os.path.join(root_dir, 'models/vggish/vggish_pca_params.npz')
+        if checkpoint_path is None:
+            self.checkpoint = os.path.join(root_dir, 'models/vggish/vggish_model.ckpt')
+        else: 
+            self.checkpoint = checkpoint_path
+        if pca_params_path is None:            
+            self.pca_params = os.path.join(root_dir, 'models/vggish/vggish_pca_params.npz')
+        else:
+            self.pca_params = pca_params_path
 
     def get_embeddings(self, x, sr=16000):
         # if x is a string, then it's a path with wav files

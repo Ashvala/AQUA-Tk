@@ -19,7 +19,7 @@ if args.web:
     # block
 
 
-config = args.configa
+config = args.config
 if config:
     import json
     with open(config) as f:

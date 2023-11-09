@@ -6,6 +6,14 @@ from numba import njit
 
 
 def critbandgroup(ffte, rate, hann=HANN, bark=87, bark_table=None):
+    """
+    Critical band grouping
+    :param ffte: FFT of the signal
+    :param rate: sampling rate
+    :param hann: window size
+    :param bark: number of bark bands
+    :param bark_table: bark bands
+    """
     p = lambda x, y: x ** y
     fC, fL, fU = bark_table    
     fres = rate / hann

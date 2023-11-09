@@ -2,6 +2,10 @@ from utils import BARK as bark
 import numpy as np
 
 def threshold(E, dz=0.25):
+    """
+    Apply a masking threshold 
+    :param E: processed spectrum     
+    """
     M = np.zeros(bark)    
     for k in range(bark):
         m = k * dz
