@@ -37,7 +37,7 @@ Download The following:
 Put them in the `embedding_extractors/vggish` folder. However, as long as you have the files, you can set the paths manually by yourself when initializing the VGGish extractor: 
 
 ```py
-from aquatk,.embedding_extractors import VGGish
+from aquatk.embedding_extractors import VGGish
 
 vggish_extractor = VGGish(path_to_checkpoint=PATH_TO_CHECKPOINT, path_to_pca_params=PATH_TO_PARAMS)
 ```
