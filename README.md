@@ -27,7 +27,26 @@ You can install this repo using Git for now. PyPi support is coming soon:
 ```bash
 $ pip install git+https://github.com/ashvala/AQUA-tk.git
 ```
+### Setting up VGGish weights: 
 
+Download The following: 
+
+* [VGGish model checkpoint](https://storage.googleapis.com/audioset/vggish_model.ckpt)
+* [Embedding PCA parameters](https://storage.googleapis.com/audioset/vggish_pca_params.npz)
+
+Put them in the `embedding_extractors/vggish` folder. However, as long as you have the files, you can set the paths manually by yourself when initializing the VGGish extractor: 
+
+```py
+from aquatk,.embedding_extractors import VGGish
+
+vggish_extractor = VGGish(path_to_checkpoint=PATH_TO_CHECKPOINT, path_to_pca_params=PATH_TO_PARAMS)
+```
+
+---
+
+## Contributing
+
+Contributions are welcome! Please feel free to open an issue or a pull request. This repository will only improve with your involvement! 
 
 ## Acknowledgements 
 
@@ -39,7 +58,7 @@ This package would not exist if it weren't for the following:
 - [PEAQb & PEAQb-Fast](https://github.com/akinori-ito/peaqb-fast)
 - [NDB/k by eitanrich](https://github.com/eitanrich/gans-n-gmms/blob/master/ndb_mnist_demo.py)
 - VGGish model from [Tensorflow's repo](https://github.com/tensorflow/models/tree/master/research/audioset/vggish)
-  
+
 ----
 
 License acknowledgements:
