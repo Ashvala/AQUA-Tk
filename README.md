@@ -39,7 +39,7 @@ This package would not exist if it weren't for the following:
 - [PEAQb & PEAQb-Fast](https://github.com/akinori-ito/peaqb-fast)
 - [NDB/k by eitanrich](https://github.com/eitanrich/gans-n-gmms/blob/master/ndb_mnist_demo.py)
 - VGGish model from [Tensorflow's repo](https://github.com/tensorflow/models/tree/master/research/audioset/vggish)
-- 
+  
 ----
 
 License acknowledgements:
