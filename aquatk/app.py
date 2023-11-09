@@ -1,5 +1,6 @@
 import streamlit as st
 from runner import * 
+import pandas as pd
 st.title("AQUA*Tk*")
 
 # set font to JetBrainsMono
@@ -19,7 +20,7 @@ st.sidebar.title("Options")
 dir1 = st.sidebar.text_input("Reference directory")
 dir2 = st.sidebar.text_input("Generated directory")
 
-metrics = st.sidebar.multiselect("Select metrics", ["KL Divergence", "MSE", "MAE", "FAD", "KD", "PEAQ"])
+metrics = st.sidebar.multiselect("Select metrics", ["KL Divergence", "MSE", "MAE", "FAD", "KD"])
 embeddings = st.sidebar.multiselect("Select neural embeddings", ["PANNs", "OpenL3", "VGGish", "JukeMIR"])
 
 metric_map = { 
@@ -29,7 +30,6 @@ metric_map = {
     "MAE": "mae",    
 }
 
-test_table = [{"embedding": "panns", "metric": "fad", "output": 0.1}, {"embedding": "", "metric": "fad", "output": 0.1}, {"embedding": "vggish", "metric": "fad", "output": 0.1}]
 
 def create_conf(dirs, metrics, embeddings):
     reference_dir = dirs[0]
@@ -55,17 +55,17 @@ if st.sidebar.button("Evaluate!"):
     with open("example_config.json") as f:
         output = json.load(f)
     cfg = config_parser(output)
-    st.write(cfg)
+    # st.write(cfg)
     cfg_outs = []
     for cfg in cfg:
         cfg_outs.append(run(cfg, st=st))    
     # compile table from array of json objects.
-    st.write(cfg_outs)
+    # st.write(cfg_outs)
     metric_table = {}
-    for cfg in cfg_outs:
-        for metric in cfg.metrics:
-            if metric not in metric_table:
-                metric_table[metric] = []
-            metric_table[metric].append(cfg.metrics[metric])
-
-    st.write(metric_table)
+    for i in cfg_outs:
+        for j in i:  
+            st.write(j["metric"])
+            if j["metric"] not in metric_table: 
+                metric_table[j["metric"]] = {}
+            metric_table[j["metric"]][j["embedding"]] = j["output"]
+    st.dataframe(pd.DataFrame(metric_table))

@@ -46,10 +46,10 @@ if __name__ == "__main__":
         sf.write(path, wave, 16000)
     
     print("[TOY] Creating noise")
-    noise = noise(1, 16000)
+    noise = noise(4, 16000)
     print("[TOY] Writing noise to disk")
     for i in range(10): 
         path = os.path.join("./toy_dataset/noise", f"noise_{i}.wav")
-        sf.write(path, noise, 16000)
+        sf.write(path, waves[i] + noise, 16000)
 
     
