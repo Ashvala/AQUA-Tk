@@ -167,7 +167,7 @@ if __name__ == "__main__":
     test_rate = test_file.samplerate
     
     ref_blocks = read_wav_blocks("ref.wav")
-    test_blocks = read_wav_blocks("ref.wav")
+    test_blocks = read_wav_blocks("test.wav")
 
     ref_blocks = np.array(ref_blocks)
     test_blocks = np.array(test_blocks)
