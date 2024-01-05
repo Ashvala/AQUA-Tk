@@ -4,12 +4,16 @@ from utils import BARK as bark
 
 
 def spreading(pp, fC, dz=0.25):
-    """ 
-    Spreading function
-    :param pp: power spectrum
-    :param fC: center frequency for each bark band
     """
-    
+    Args:
+        pp: array of float - input values for spreading
+        fC: array of float - input values for spreading
+        dz: float - optional parameter for spreading, default value is 0.25
+
+    Returns:
+        array of float - result of tf spreading
+
+    """
     Sl = 27.0  # Lower spreading constant
 
     # Initialize arrays

@@ -9,10 +9,20 @@ FREQADAP=23.4375
 
 def earmodelfft(x, channels, lp, fft_size=512):
     """
-    Compute a spectrogram for a given audio signal.
-    :param x: A vector of audio samples
-    :param channels: Number of channels 
-    :param fft_size: The size of the FFT
+    Args:
+        x: array-like
+            Input signal.
+        channels: int
+            Number of channels.
+        lp: float
+            Loudness factor.
+        fft_size: int, optional
+            Size of the FFT. Default is 512.
+
+    Returns:
+        tuple
+            A tuple containing two arrays: `ffte` and `absfft`
+
     """
     # print(f"[Block stats] Min: {np.min(x)}\n[Block stats] Max: {np.max(x)}\n[Block stats] Mean: {np.mean(x)}\n")
     hann_window = np.sqrt(8 / 3) * (0.5 - 0.5 * np.cos(2 * np.pi * np.arange(fft_size) / (fft_size - 1)))

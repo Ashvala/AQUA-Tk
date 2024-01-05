@@ -394,8 +394,12 @@ def detprob(Etestch1, Erefch1, state, hann=HANN, bark=BARK):
     for k in range(bark):
         Etildetestch1 = 10.0 * np.log10(Etestch1[k])
         Etilderefch1 = 10.0 * np.log10(Erefch1[k])
+
         L = 0.3 * max(Etilderefch1, Etildetestch1) + 0.7 * Etildetestch1
-        s = s_f(L)
+        if L > 0: 
+            s = s_f(L)
+        else: 
+            s = p(10, 30)
         e = Etilderefch1 - Etildetestch1
         b = 4.0 if Etilderefch1 > Etildetestch1 else 6.0
         a = p(10.0, np.log10(np.log10(2.0)) / b) / s
