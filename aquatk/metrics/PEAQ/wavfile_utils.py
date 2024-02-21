@@ -44,5 +44,6 @@ def read_wav_blocks(filename, block_size=2048, overlap=1024):
 
             # Rewind for overlap
             wav_file.setpos(wav_file.tell() - overlap)
-
+    print(np.array(blocks).dtype)
+    print(np.array(blocks).max(), np.array(blocks).min())
     return blocks

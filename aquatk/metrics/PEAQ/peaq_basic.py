@@ -249,3 +249,5 @@ def process_audio_files(ref_filename: str, test_filename: str):
     print(f"Distortion Index: {avg_DI}, Objective Difference Grade: {avg_ODG}")
 
 
+if __name__ == "__main__":
+    process_audio_files("ref.wav", "test.wav")

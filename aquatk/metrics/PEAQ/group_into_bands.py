@@ -5,7 +5,7 @@ from utils import p, BARK, HANN
 from numba import njit
 
 
-def critbandgroup(ffte, rate, hann=HANN, bark=87, bark_table=None):
+def critbandgroup(ffte, rate, hann=HANN, bark=87, bark_table=[]):
     """
     Args:
         ffte: The array of FFT coefficients.
@@ -19,7 +19,7 @@ def critbandgroup(ffte, rate, hann=HANN, bark=87, bark_table=None):
 
     """
     p = lambda x, y: x ** y
-    fC, fL, fU = bark_table    
+    fC, fL, fU = bark_table
     fres = rate / hann
     pe = np.zeros(bark)
 
@@ -37,7 +37,7 @@ def critbandgroup(ffte, rate, hann=HANN, bark=87, bark_table=None):
                 pe[i] += p(ffte[k], 2.0) * (fU[i] - k_lower) / fres
 
         pe[i] = max(pe[i], p(10.0, -12.0))
-        
+
     return pe
 
 def AddIntNoise(pe, fC):
@@ -75,9 +75,9 @@ if __name__ == "__main__":
     x = np.sin(2 * np.pi * f * t)
     # calculate fft
     ffte, _ = earmodelfft(x, 1, hann)
+    print(ffte.shape)
     # calculate pe
-    pe = critbandgroup(ffte, rate, hann, (fC, fL, fU))
-    print(pe)
+    pe = critbandgroup(ffte, rate, hann, bark_table=[fC, fL, fU])
     # plot
     import matplotlib.pyplot as plt
     plt.plot(pe)
