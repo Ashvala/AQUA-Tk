@@ -35,7 +35,7 @@ Download The following:
 * [VGGish model checkpoint](https://storage.googleapis.com/audioset/vggish_model.ckpt)
 * [Embedding PCA parameters](https://storage.googleapis.com/audioset/vggish_pca_params.npz)
 
-Put them in the `embedding_extractors/vggish` folder. However, as long as you have the files, you can set the paths manually by yourself when initializing the VGGish extractor: 
+Put them in the `embedding_extractors/models/vggish` folder. However, as long as you have the files, you can set the paths manually by yourself when initializing the VGGish extractor: 
 
 ```py
 from aquatk.embedding_extractors import VGGish
