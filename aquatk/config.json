@@ -1,1 +1,1 @@
-{"reference_dir": "", "sr": 16000, "metrics": [], "embeddings": [], "evaluate": {"network_1": {"gen_dir": ""}}}
+{"reference_dir": "", "sr": 16000, "metrics": ["MSE", "FAD", "MAE"], "embeddings": ["OpenL3"], "evaluate": {"network_1": {"gen_dir": ""}}}

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="f4471adc-4cf5-467e-a630-0eb0432b0876" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/aquatk/metrics/peaq_metric.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aquatk/metrics/PEAQ/MOV.py" beforeDir="false" afterPath="$PROJECT_DIR$/aquatk/metrics/PEAQ/MOV.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aquatk/metrics/PEAQ/create_bark.py" beforeDir="false" afterPath="$PROJECT_DIR$/aquatk/metrics/PEAQ/create_bark.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aquatk/metrics/PEAQ/do_spreading.py" beforeDir="false" afterPath="$PROJECT_DIR$/aquatk/metrics/PEAQ/do_spreading.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aquatk/metrics/PEAQ/fft_ear_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/aquatk/metrics/PEAQ/fft_ear_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aquatk/metrics/PEAQ/group_into_bands.py" beforeDir="false" afterPath="$PROJECT_DIR$/aquatk/metrics/PEAQ/group_into_bands.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aquatk/metrics/PEAQ/modulation.py" beforeDir="false" afterPath="$PROJECT_DIR$/aquatk/metrics/PEAQ/modulation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aquatk/metrics/PEAQ/neural.py" beforeDir="false" afterPath="$PROJECT_DIR$/aquatk/metrics/PEAQ/neural.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aquatk/metrics/PEAQ/peaq_basic.py" beforeDir="false" afterPath="$PROJECT_DIR$/aquatk/metrics/PEAQ/peaq_basic.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aquatk/metrics/PEAQ/threshold.py" beforeDir="false" afterPath="$PROJECT_DIR$/aquatk/metrics/PEAQ/threshold.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aquatk/metrics/PEAQ/time_spreading.py" beforeDir="false" afterPath="$PROJECT_DIR$/aquatk/metrics/PEAQ/time_spreading.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 6
+}</component>
+  <component name="ProjectId" id="2aQ1uP37ljHvb2X6XflIpjKkIJZ" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "git-widget-placeholder": "feature/peaq__updates",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.lookFeel",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-python-sdk-50da183f06c8-2887949eec09-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-233.13135.95" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="f4471adc-4cf5-467e-a630-0eb0432b0876" name="Changes" comment="" />
+      <created>1704236212202</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1704236212202</updated>
+      <workItem from="1704236214501" duration="256000" />
+      <workItem from="1704236486172" duration="776000" />
+      <workItem from="1704237379220" duration="31000" />
+      <workItem from="1704237417624" duration="5944000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>

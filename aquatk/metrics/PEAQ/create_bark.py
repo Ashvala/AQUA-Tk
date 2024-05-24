@@ -5,10 +5,19 @@ BI = lambda z: 650 * np.sinh(z / 7.0)
 
 
 def calculate_bark_bands(f_low, f_high, dz=0.25):
-    """ 
-    Bark scale generator
-    :param f_low: lower frequency bound
-    :param f_high: higher frequency bound
+    """
+    Calculates the bark bands for a given frequency range.
+
+    Args:
+        f_low (float): The lower frequency boundary.
+        f_high (float): The upper frequency boundary.
+        dz (float, optional): The step size in Bark scale. Defaults to 0.25.
+
+    Returns:
+        tuple: A tuple containing three arrays:
+            - fL: Array of lower frequency boundaries for each bark band.
+            - fC: Array of center frequency for each bark band.
+            - fU: Array of upper frequency boundaries for each bark band.
     """
     zL = B(f_low)
     zU = B(f_high)

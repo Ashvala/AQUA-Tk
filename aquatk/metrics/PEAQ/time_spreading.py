@@ -7,6 +7,17 @@ Tmin = 0.008
 
 
 def time_spreading(E2, rate, fC):
+    """
+    Args:
+        E2: numpy array of shape (BARK,), representing input energy values.
+        rate: float, representing the time rate.
+        fC: numpy array of shape (BARK,), representing the center frequency values.
+
+    Returns:
+        Tuple containing two numpy arrays:
+        - E: numpy array of shape (BARK,), representing the output energy values.
+        - Etmp: numpy array of shape (BARK,), representing the intermediate energy values.
+    """
     E = np.zeros(BARK)
     Etmp = np.zeros(BARK)
     

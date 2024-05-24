@@ -208,45 +208,27 @@ def init_state():
     }
 
 
-if __name__ == "__main__":
-    ref_blocks = []
-    test_blocks = []
-    ref_file = SoundFile("ref.wav")
-    test_file = SoundFile("test.wav")
-    ref_subtype = ref_file.subtype
-    test_subtype = test_file.subtype
-    ref_rate = ref_file.samplerate
-    test_rate = test_file.samplerate
+def process_audio_files(ref_filename: str, test_filename: str):
+    def read_and_process_soundfile(filename: str) -> np.ndarray:
+        sound_file = SoundFile(filename)
+        sound_blocks = np.array(read_wav_blocks(filename))
+        # mono
+        if sound_blocks.shape[-1] == 1:
+            sound_blocks = np.squeeze(sound_blocks, axis=-1)
+        # stereo
+        elif sound_blocks.shape[-1] == 2:
+            sound_blocks = sound_blocks.mean(axis=-1)
+        return sound_blocks, sound_file.samplerate
 
-    ref_blocks = read_wav_blocks("ref.wav")
-    test_blocks = read_wav_blocks("test.wav")
+    ref_blocks, ref_rate = read_and_process_soundfile(ref_filename)
+    test_blocks, test_rate = read_and_process_soundfile(test_filename)
 
-    ref_blocks = np.array(ref_blocks)
-    test_blocks = np.array(test_blocks)
-
-    # mono
-    if ref_blocks.shape[-1] == 1:
-        ref_blocks = np.squeeze(ref_blocks, axis=-1)
-    if test_blocks.shape[-1] == 1:
-        test_blocks = np.squeeze(test_blocks, axis=-1)
-
-    # stereo
-    if ref_blocks.shape[-1] == 2:
-        ref_blocks = ref_blocks.mean(axis=2)
-    if test_blocks.shape[-1] == 2:
-        test_blocks = test_blocks.mean(axis=2)
-
-    blocked_processed_outs = []
-
+    processed_blocks_list = []
     state = init_state()
-
     num_blocks = len(ref_blocks)
-    # while state["count"] < num_blocks:
-    MOVs = []
-    DI_list = []
-    ODG_list = []
+    result = {"MOV_list": [], "DI_list": [], "ODG_list": []}
+
     for i in tqdm(range(num_blocks)):
-        # check boundary
         boundaryflag = boundary(ref_blocks[i], test_blocks[i], ref_rate)
         proc, state, movs, di, odg = process_audio_block(
             ref_blocks[i],
@@ -256,13 +238,16 @@ if __name__ == "__main__":
             boundflag=boundaryflag,
             test_rate=test_rate,
         )
-        MOVs.append(movs)
-        blocked_processed_outs.append(proc)
-        DI_list.append(di)
-        ODG_list.append(odg)
+        result["MOV_list"].append(movs)
+        processed_blocks_list.append(proc)
+        result["DI_list"].append(di)
+        result["ODG_list"].append(odg)
         state["count"] += 1
 
-    # compute average DI and ODG
-    avg_DI = np.mean(DI_list)
-    avg_ODG = np.mean(ODG_list)
+    avg_DI = np.mean(result["DI_list"])
+    avg_ODG = np.mean(result["ODG_list"])
     print(f"Distortion Index: {avg_DI}, Objective Difference Grade: {avg_ODG}")
+
+
+if __name__ == "__main__":
+    process_audio_files("ref.wav", "test.wav")

@@ -5,17 +5,21 @@ from utils import p, BARK, HANN
 from numba import njit
 
 
-def critbandgroup(ffte, rate, hann=HANN, bark=87, bark_table=None):
+def critbandgroup(ffte, rate, hann=HANN, bark=87, bark_table=[]):
     """
-    Critical band grouping
-    :param ffte: FFT of the signal
-    :param rate: sampling rate
-    :param hann: window size
-    :param bark: number of bark bands
-    :param bark_table: bark bands
+    Args:
+        ffte: The array of FFT coefficients.
+        rate: The sampling rate of the audio signal.
+        hann: The length of the Hann window used for FFT.
+        bark: The number of critical bands to calculate.
+        bark_table: A tuple of three arrays (fC, fL, fU) representing the center frequencies, lower frequency bounds, and upper frequency bounds of each critical band.
+
+    Returns:
+        pe: An array of the calculated critical band energy values.
+
     """
     p = lambda x, y: x ** y
-    fC, fL, fU = bark_table    
+    fC, fL, fU = bark_table
     fres = rate / hann
     pe = np.zeros(bark)
 
@@ -33,10 +37,28 @@ def critbandgroup(ffte, rate, hann=HANN, bark=87, bark_table=None):
                 pe[i] += p(ffte[k], 2.0) * (fU[i] - k_lower) / fres
 
         pe[i] = max(pe[i], p(10.0, -12.0))
-        
+
     return pe
 
 def AddIntNoise(pe, fC):
+    """
+    Args:
+        pe: List[float] - A list of values representing the input data.
+        fC: List[float] - A list of values representing frequency coefficients.
+
+    Returns:
+        List[float] - A list of values after adding noise to each element in pe.
+
+    Description:
+        This method takes in a list of input data (pe) and a list of frequency coefficients (fC). It then adds noise to each element in pe based on the corresponding frequency coefficient
+    * in fC.
+
+    Example:
+        pe = [0.5, 0.7, 0.9]
+        fC = [1000, 2000, 3000]
+        result = AddIntNoise(pe, fC)
+        # result will be [0.655, 0.753, 0.857]
+    """
     bark = BARK
     for k in range(bark):
         Pthres = p(10.0, 0.4 * 0.364 * p(fC[k] / 1000.0, -0.8))
@@ -53,9 +75,9 @@ if __name__ == "__main__":
     x = np.sin(2 * np.pi * f * t)
     # calculate fft
     ffte, _ = earmodelfft(x, 1, hann)
+    print(ffte.shape)
     # calculate pe
-    pe = critbandgroup(ffte, rate, hann, (fC, fL, fU))
-    print(pe)
+    pe = critbandgroup(ffte, rate, hann, bark_table=[fC, fL, fU])
     # plot
     import matplotlib.pyplot as plt
     plt.plot(pe)

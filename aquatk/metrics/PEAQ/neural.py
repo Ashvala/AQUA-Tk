@@ -23,13 +23,23 @@ I = 11  # Number of input neurons
 J = 3  # Number of hidden neurons
 
 def sigmoid(x):
+    """
+    Args:
+        x: The input value for which the sigmoid function will be calculated.
+
+    Returns:
+        The sigmoid value of the input number ranging from 0 to 1.
+    """
     return 1 / (1 + np.exp(-x))
 
 
 def neural(processed):
-    """ 
-    Neural network. Yes, this is it! 
-    :param processed: processed data/all the MOVs
+    """
+    Args:
+        processed: a dictionary containing the processed data
+
+    Returns:
+        a dictionary containing the calculated values for DI and ODG
     """
     x = np.array([processed["BandwidthRefb"], processed["BandwidthTestb"], processed["TotalNMRb"],
                   processed["WinModDiff1b"], processed["ADBb"], processed["EHSb"], processed["AvgModDiff1b"],

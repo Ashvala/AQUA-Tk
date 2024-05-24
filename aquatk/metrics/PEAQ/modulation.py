@@ -9,22 +9,53 @@ Tmin = 0.008
 
 @dataclass
 class ModulationIn:
+    """
+    Initializes an instance of the ModulationIn class.
+
+    Args:
+        e2_tmp (float): The value of the e2_tmp parameter.
+        etilde_tmp (float): The value of the etilde_tmp parameter.
+        eder_tmp (float): The value of the eder_tmp parameter.
+    """
     def __init__(self, e2_tmp, etilde_tmp, eder_tmp):
+        """
+        Initializes an instance of the Class.
+
+        Args:
+            e2_tmp: The value of e2_tmp parameter.
+            etilde_tmp: The value of etilde_tmp parameter.
+            eder_tmp: The value of eder_tmp parameter.
+        """
         self.E2tmp = e2_tmp
         self.Etildetmp = etilde_tmp
         self.Edertmp = eder_tmp
 
     def __repr__(self):
+        """
+        Returns a string representation of the object.
+
+        Returns:
+        str: A string representing the object in the format:
+             "ModulationIn(E2tmp={E2tmp}, Etildetmp={Etildetmp}, Edertmp={Edertmp})"
+        """
         return f"ModulationIn(E2tmp={self.E2tmp}, Etildetmp={self.Etildetmp}, Edertmp={self.Edertmp})"
 
 
 def modulation(E2, rate, in_struct, fC):
     """
-    Compute ear modulation
-    :param E2: power spectrum
-    :param rate: sampling rate
-    :param in_struct: modulation input structure
-    :param fC: center frequency for each bark band
+    Args:
+        E2: A list or array which contains the values of E2.
+        rate: The modulation rate.
+        in_struct: An object of a structure/class that contains the following attributes:
+            - Edertmp: A list or array for storing temporary values of Edertmp.
+            - E2tmp: A list or array for storing temporary values of E2tmp.
+            - Etildetmp: A list or array for storing temporary values of Etildetmp.
+        fC: A list or array which contains the values of fC.
+
+    Returns:
+        A tuple containing two elements:
+        - Mod: A list or array which contains the calculated modulation values.
+        - in_struct: The updated in_struct object with updated values of Edertmp, E2tmp, and Etildetmp.
     """
     Mod = np.zeros(bark)
     for k in range(bark):
