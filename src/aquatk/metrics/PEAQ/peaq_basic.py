@@ -247,6 +247,7 @@ def process_audio_files(ref_filename: str, test_filename: str):
     avg_DI = np.mean(result["DI_list"])
     avg_ODG = np.mean(result["ODG_list"])
     print(f"Distortion Index: {avg_DI}, Objective Difference Grade: {avg_ODG}")
+    return result
 
 
 if __name__ == "__main__":

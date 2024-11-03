@@ -223,18 +223,150 @@ class PEAQ:
             final_movs[key] = np.mean(values)
             
         return final_movs
+    
+    def _analyze_blocks(self, ref_blocks, test_blocks, sample_rate, progress_bar=True):
+        """Analyze a list of audio blocks"""
+        mov_list = []
+        di_list = []
+        odg_list = []
+        
+        iterator = tqdm(range(len(ref_blocks))) if progress_bar else range(len(ref_blocks))
+        
+        for i in iterator:
+            boundaryflag = self._check_boundary(ref_blocks[i], test_blocks[i], sample_rate)
+            _, _, movs, di, odg = self._process_block(
+                ref_blocks[i], 
+                test_blocks[i],
+                sample_rate,
+                boundaryflag,
+                sample_rate  # Using same rate for test since we validated they match
+            )
+            mov_list.append(movs)
+            di_list.append(di) 
+            odg_list.append(odg)
+            self.state["count"] += 1
+            
+        # Calculate final results
+        final_di = np.mean(di_list)
+        final_odg = np.mean(odg_list)
+        final_mov = self._aggregate_movs(mov_list)
+        
+        return PEAQResult(
+            odg=final_odg,
+            di=final_di,
+            mov=final_mov
+        )
+
+@dataclass
+class PEAQ2FResult:
+    """Results from PEAQ 2F model analysis"""
+    score: float
+    movs: Dict[str, float]
+
+    def __repr__(self):
+        return f"""PEAQ 2F Analysis Results:
+        Quality Score: {self.score:.3f}
+        
+        Model Output Variables:
+        ----------------------
+        AvgModDiff1: {self.movs['AvgModDiff1']:.3f}
+        ADB: {self.movs['ADB']:.3f}
+        """
+
+class PEAQ2F(PEAQ):
+    """
+    Simplified PEAQ model using only 2 factors (AvgModDiff1 and ADB)
+    """
+    
+    def __init__(self):
+        super().__init__(version="basic")  # We'll still use basic version infrastructure
+        
+    def _calculate_2f_score(self, avg_mod_diff1: float, adb: float) -> float:
+        """
+        Calculate the 2F model score using the provided formula
+        
+        Args:
+            avg_mod_diff1: Average modulation difference 1 MOV
+            adb: Average Distorted Block MOV
+            
+        Returns:
+            Final quality score
+        """
+        numerator = 56.1345
+        denominator = 1 + (-0.0282 * avg_mod_diff1 - 0.8628)**2
+        
+        score = (numerator / denominator) - 27.1451 * adb + 86.3515
+        bounded_score = np.clip(score, 0, 100)
+
+        return bounded_score
+    
+    def analyze_files(self, reference_file: str, test_file: str, 
+                     progress_bar: bool = True) -> PEAQ2FResult:
+        """
+        Analyze audio quality using only AvgModDiff1 and ADB MOVs
+        """
+        # Use parent class to get all MOVs
+        peaq_result = super().analyze_files(reference_file, test_file, progress_bar)
+        
+        # Extract just the MOVs we need
+        relevant_movs = {
+            'AvgModDiff1': peaq_result.mov['AvgModDiff1b'],
+            'ADB': peaq_result.mov['ADBb']
+        }
+        
+        # Calculate 2F score
+        score = self._calculate_2f_score(
+            avg_mod_diff1=relevant_movs['AvgModDiff1'],
+            adb=relevant_movs['ADB']
+        )
+        
+        return PEAQ2FResult(score=score, movs=relevant_movs)
+    
+    def analyze_arrays(self, reference: np.ndarray, test: np.ndarray,
+                      sample_rate: int, progress_bar: bool = True) -> PEAQ2FResult:
+        """
+        Analyze audio arrays using only AvgModDiff1 and ADB MOVs
+        """
+        # Use parent class to get all MOVs
+        peaq_result = super().analyze_arrays(reference, test, sample_rate, progress_bar)
+        
+        # Extract just the MOVs we need
+        relevant_movs = {
+            'AvgModDiff1': peaq_result.mov['AvgModDiff1b'],
+            'ADB': peaq_result.mov['ADBb']
+        }
+        
+        # Calculate 2F score
+        score = self._calculate_2f_score(
+            avg_mod_diff1=relevant_movs['AvgModDiff1'],
+            adb=relevant_movs['ADB']
+        )
+        
+        return PEAQ2FResult(score=score, movs=relevant_movs)
+
+
+
 
 if __name__ == "__main__":
     # Initialize PEAQ analyzer
     peaq = PEAQ(version="basic")
     
     # Analyze audio files
-    result = peaq.analyze_files("ref.wav", "test.wav")
+    # result = peaq.analyze_files("ref.wav", "test.wav")
 
-    print(result)
+    # print(result)
     
     # Or analyze numpy arrays
     ref_audio = np.random.randn(48000)  # 1 second at 48kHz
     test_audio = ref_audio + 0.01 * np.random.randn(48000)  # Add noise
     result = peaq.analyze_arrays(ref_audio, test_audio, sample_rate=48000)
+    print(result)
+    peaq_2f = PEAQ2F()
+    # result = peaq_2f.analyze_files("reference.wav", "test.wav")
+    # print(result)
+    
+    # Or analyze numpy arrays
+    ref_audio = np.random.randn(48000)  # 1 second at 48kHz
+    test_audio = ref_audio + 0.01 * np.random.randn(48000)  # Add noise
+    result = peaq_2f.analyze_arrays(ref_audio, test_audio, sample_rate=48000)
     print(result)
