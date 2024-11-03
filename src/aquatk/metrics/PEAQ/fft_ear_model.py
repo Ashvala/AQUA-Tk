@@ -7,7 +7,7 @@ NORM=11361.301063573899
 FREQADAP=23.4375
 
 
-def earmodelfft(x, channels, lp, fft_size=512):
+def earmodelfft(x, channels, lp, fft_size=2048):
     """
     Args:
         x: array-like
@@ -36,7 +36,7 @@ def earmodelfft(x, channels, lp, fft_size=512):
     for k in range(0, fft_size//2):
         absfft[k] = np.sqrt(p(out[k].real, 2.0) + p(out[k].imag, 2.0))
         #print(f"[earmodelfft] absfft[{k}]: {absfft[k]}")
-        w = -0.6*3.64*p(k * FREQADAP/1000.0, -0.8) + 6.5*np.exp(-0.6*p(k * FREQADAP/1000.0 - 3.3, 2.0)) - 0.001*p(k * FREQADAP/1000.0, 3.6)
+        w = -0.6 * 3.64 * pow(k * FREQADAP / 1000.0, -0.8) + 6.5 * exp(-0.6 * pow(k * FREQADAP / 1000.0 - 3.3, 2.0)) - 0.001 * pow(k * FREQADAP / 1000.0, 3.6)
         #print("[earmodelfft] w: ", w)
         ffte[k] = absfft[k]*p(10.0, w/20.0)
         #print(f"[earmodelfft] ffte[{k}]: {ffte[k]}")

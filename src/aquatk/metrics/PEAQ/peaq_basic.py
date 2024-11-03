@@ -1,19 +1,19 @@
 import argparse
-from do_spreading import *
-from time_spreading import *
-from fft_ear_model import *
-from utils import *
-from group_into_bands import *
-from create_bark import *
-from modulation import *
+from .do_spreading import *
+from .time_spreading import *
+from .fft_ear_model import *
+from .utils import *
+from .group_into_bands import *
+from .create_bark import *
+from .modulation import *
 import soundfile as sf
 from soundfile import SoundFile
-from threshold import *
+from .threshold import *
 import numpy as np
-from MOV import *
+from .MOV import *
 from scipy.io import wavfile
-from wavfile_utils import *
-from neural import *
+from .wavfile_utils import *
+from .neural import *
 from tqdm import tqdm
 
 
