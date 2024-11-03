@@ -1,3 +1,4 @@
+from math import exp
 import numpy as np
 from scipy.fft import fft
 from utils import p
@@ -17,7 +18,7 @@ def earmodelfft(x, channels, lp, fft_size=2048):
         lp: float
             Loudness factor.
         fft_size: int, optional
-            Size of the FFT. Default is 512.
+            Size of the FFT. Default is 2048.
 
     Returns:
         tuple
@@ -35,11 +36,10 @@ def earmodelfft(x, channels, lp, fft_size=2048):
     out.imag *= (fac/(fft_size//2))
     for k in range(0, fft_size//2):
         absfft[k] = np.sqrt(p(out[k].real, 2.0) + p(out[k].imag, 2.0))
-        #print(f"[earmodelfft] absfft[{k}]: {absfft[k]}")
-        w = -0.6 * 3.64 * pow(k * FREQADAP / 1000.0, -0.8) + 6.5 * exp(-0.6 * pow(k * FREQADAP / 1000.0 - 3.3, 2.0)) - 0.001 * pow(k * FREQADAP / 1000.0, 3.6)
-        #print("[earmodelfft] w: ", w)
-        ffte[k] = absfft[k]*p(10.0, w/20.0)
-        #print(f"[earmodelfft] ffte[{k}]: {ffte[k]}")
+        w = -0.6 * 3.64 * p(k * FREQADAP / 1000.0, -0.8) + \
+            6.5 * exp(-0.6 * p(k * FREQADAP / 1000.0 - 3.3, 2.0)) - \
+            0.001 * p(k * FREQADAP / 1000.0, 3.6)
+        ffte[k] = absfft[k] * p(10.0, w/20.0)
     return ffte, absfft
 
 

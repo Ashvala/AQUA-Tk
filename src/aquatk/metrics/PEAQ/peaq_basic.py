@@ -1,19 +1,19 @@
 import argparse
-from .do_spreading import *
-from .time_spreading import *
-from .fft_ear_model import *
-from .utils import *
-from .group_into_bands import *
-from .create_bark import *
-from .modulation import *
+from aquatk.metrics.PEAQ.do_spreading import *
+from aquatk.metrics.PEAQ.time_spreading import *
+from aquatk.metrics.PEAQ.fft_ear_model import *
+from aquatk.metrics.PEAQ.utils import *
+from aquatk.metrics.PEAQ.group_into_bands import *
+from aquatk.metrics.PEAQ.create_bark import *
+from aquatk.metrics.PEAQ.modulation import *
 import soundfile as sf
 from soundfile import SoundFile
-from .threshold import *
+from aquatk.metrics.PEAQ.threshold import *
 import numpy as np
-from .MOV import *
+from aquatk.metrics.PEAQ.MOV import *
 from scipy.io import wavfile
-from .wavfile_utils import *
-from .neural import *
+from aquatk.metrics.PEAQ.wavfile_utils import *
+from aquatk.metrics.PEAQ.neural import *
 from tqdm import tqdm
 
 
