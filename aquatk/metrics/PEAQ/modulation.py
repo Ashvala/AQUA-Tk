@@ -1,6 +1,6 @@
 import numpy as np
-from utils import BARK as bark
-from utils import module, HANN
+from .utils import BARK as bark
+from .utils import module, HANN
 from dataclasses import dataclass
 from numba import njit
 

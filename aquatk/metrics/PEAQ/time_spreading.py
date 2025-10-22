@@ -1,5 +1,5 @@
 import numpy as np
-from utils import BARK, HANN
+from .utils import BARK, HANN
 
 
 T100 = 0.03

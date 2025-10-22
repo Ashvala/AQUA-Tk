@@ -1,7 +1,7 @@
 import numpy as np
-from fft_ear_model import earmodelfft
-from create_bark import calculate_bark_bands
-from utils import p, BARK, HANN
+from .fft_ear_model import earmodelfft
+from .create_bark import calculate_bark_bands
+from .utils import p, BARK, HANN
 from numba import njit
 
 

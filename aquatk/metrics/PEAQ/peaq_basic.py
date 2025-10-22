@@ -1,20 +1,20 @@
 import argparse
-from do_spreading import *
-from time_spreading import *
-from fft_ear_model import *
-from utils import *
-from group_into_bands import *
-from create_bark import *
-from modulation import *
+from .do_spreading import *
+from .time_spreading import *
+from .fft_ear_model import *
+from .utils import *
+from .group_into_bands import *
+from .create_bark import *
+from .modulation import *
 import soundfile as sf
 from soundfile import SoundFile
-from threshold import *
+from .threshold import *
 import numpy as np
-from MOV import *
+from .MOV import *
 from scipy.io import wavfile
-from wavfile_utils import *
-from neural import *
-from tqdm import tqdm
+from .wavfile_utils import *
+from .neural import *
+# from tqdm import tqdm
 
 
 def boundary(ch1ref, ch1test, rate, hann=HANN, BOUNDLIMIT=200, BOUNDWIN=5):
@@ -228,7 +228,7 @@ def process_audio_files(ref_filename: str, test_filename: str):
     num_blocks = len(ref_blocks)
     result = {"MOV_list": [], "DI_list": [], "ODG_list": []}
 
-    for i in tqdm(range(num_blocks)):
+    for i in range(num_blocks):
         boundaryflag = boundary(ref_blocks[i], test_blocks[i], ref_rate)
         proc, state, movs, di, odg = process_audio_block(
             ref_blocks[i],

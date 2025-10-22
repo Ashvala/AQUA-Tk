@@ -1,9 +1,9 @@
 import math
 from math import log10, sqrt, cos, pi
 from scipy.fftpack import fft
-from utils import *
-import utils
-from utils import HANN as hann
+from .utils import *
+from . import utils
+from .utils import HANN as hann
 
 
 def bandwidth(processing,

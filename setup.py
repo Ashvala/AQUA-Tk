@@ -1,9 +1,9 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='AquaTk',
     version='0.0.1',
-    packages=['aquatk'],
+    packages=find_packages(),
     url='',
     license='',
     author='Ashvala Vinay',

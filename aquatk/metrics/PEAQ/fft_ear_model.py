@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.fft import fft
-from utils import p
+from .utils import p
 import pdb
 
 NORM=11361.301063573899
