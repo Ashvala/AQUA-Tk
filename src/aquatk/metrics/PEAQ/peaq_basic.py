@@ -1,19 +1,19 @@
 import argparse
-from aquatk.metrics.PEAQ.do_spreading import *
-from aquatk.metrics.PEAQ.time_spreading import *
-from aquatk.metrics.PEAQ.fft_ear_model import *
-from aquatk.metrics.PEAQ.utils import *
-from aquatk.metrics.PEAQ.group_into_bands import *
-from aquatk.metrics.PEAQ.create_bark import *
-from aquatk.metrics.PEAQ.modulation import *
+from .do_spreading import *
+from .time_spreading import *
+from .fft_ear_model import *
+from .utils import *
+from .group_into_bands import *
+from .create_bark import *
+from .modulation import *
 import soundfile as sf
 from soundfile import SoundFile
-from aquatk.metrics.PEAQ.threshold import *
+from .threshold import *
 import numpy as np
-from aquatk.metrics.PEAQ.MOV import *
+from .MOV import *
 from scipy.io import wavfile
-from aquatk.metrics.PEAQ.wavfile_utils import *
-from aquatk.metrics.PEAQ.neural import *
+from .wavfile_utils import *
+from .neural import *
 from tqdm import tqdm
 
 
@@ -39,7 +39,7 @@ def process_audio_block(
     boundflag=0,
     test_rate=16000,
 ):
-    fC, fL, fR = calculate_bark_bands(80, 8000)
+    fC, fL, fR = calculate_bark_bands(80, 18000)
     harm_samples = 1
     while harm_samples < (18000 / test_rate) * (HANN / 4):
         harm_samples *= 2
@@ -61,20 +61,30 @@ def process_audio_block(
     E2test = spreading(pptest, fC)
     E2ref = spreading(ppref, fC)
 
-    Etest, Etmptest = time_spreading(E2test, rate, fC)
-    Eref, Etmpref = time_spreading(E2ref, rate, fC)
+    # Use persistent Etmp state for time spreading (critical for temporal filtering)
+    Etest, Etmptest = time_spreading_with_state(E2test, rate, fC, state.get("Etmptest"))
+    Eref, Etmpref = time_spreading_with_state(E2ref, rate, fC, state.get("Etmpref"))
+    state["Etmptest"] = Etmptest
+    state["Etmpref"] = Etmpref
 
     Mref = threshold(Eref)
-    test_modulationIn = ModulationIn(
-        e2_tmp=Etmptest, etilde_tmp=Etmptest, eder_tmp=np.zeros_like(Etmptest)
+
+    # Use persistent modulation state (critical for temporal filtering)
+    if state.get("test_modulationIn") is None:
+        state["test_modulationIn"] = ModulationIn(
+            e2_tmp=np.zeros(BARK), etilde_tmp=np.zeros(BARK), eder_tmp=np.zeros(BARK)
+        )
+    if state.get("ref_modulationIn") is None:
+        state["ref_modulationIn"] = ModulationIn(
+            e2_tmp=np.zeros(BARK), etilde_tmp=np.zeros(BARK), eder_tmp=np.zeros(BARK)
+        )
+
+    Modtest, state["test_modulationIn"] = modulation(
+        E2test, rate, in_struct=state["test_modulationIn"], fC=fC
     )
-    ref_modulationIn = ModulationIn(
-        e2_tmp=Etmpref, etilde_tmp=Etmpref, eder_tmp=np.zeros_like(Etmpref)
+    Modref, state["ref_modulationIn"] = modulation(
+        E2ref, rate, in_struct=state["ref_modulationIn"], fC=fC
     )
-    Modtest, test_modulationIn = modulation(
-        E2test, rate, in_struct=test_modulationIn, fC=fC
-    )
-    Modref, _ = modulation(E2ref, rate, in_struct=ref_modulationIn, fC=fC)
 
     proc = Processing(
         fftref,
@@ -103,34 +113,45 @@ def process_audio_block(
             BandwidthRefb=bandwidth_out["BandwidthRefb"],
             BandwidthTestb=bandwidth_out["BandwidthTestb"],
         )
-        # update corresponding state values in bandwidth_result
-        map(lambda x: state.update({x: bandwidth_out[x]}), bandwidth_out.keys())
+        # FIX: Actually update state with bandwidth values (map() was never consumed)
+        for key in bandwidth_out.keys():
+            state[key] = bandwidth_out[key]
         NMR_out, nmrtmp = nmr(proc, state)
-        state.update({"nmrtmp": nmrtmp})
-        movs.update(TotalNMRb=movs.TotalNMRb + NMR_out)
+        state["nmrtmp"] = nmrtmp
+        movs.update(TotalNMRb=NMR_out)
         reldist, reldisttmp = reldistframes(proc, state)
-        state.update({"RelDistFramesb": reldist})
+        state["RelDistTmp"] = reldisttmp
+        state["RelDistFramesb"] = reldist
         movs.update(RelDistFramesb=reldist)
         state["countboundary"] += 1
         if energyth(test=ch1test, ref=ch1ref):
             hs, ehstmp = harmstruct(
                 proc,
                 state,
+                rate=rate,
+                harmsamples=harm_samples,
             )
             movs.update(EHSb=hs)
+            state["EHStmp"] = ehstmp  # Update state with accumulated EHStmp
+            state["countenergy"] += 1
 
     if state["count"] > delaytime2:
-        mouts = moddiff(Modtest, Modref, ref_modulationIn.Etildetmp, fC)
-        # pdb.set_trace()
+        # Use persistent ref_modulationIn from state
+        mouts = moddiff(Modtest, Modref, state["ref_modulationIn"].Etildetmp, fC)
         ModDiff = ModDiffOut(mouts[0], mouts[1], mouts[2])
-        ModDiffInVars = ModDiffIn()
-        o = ModDiff1(ModDiff, ModDiffInVars, state["count"] - delaytime2)
+
+        # FIX: Use persistent ModDiffInVars from state instead of recreating
+        if state.get("ModDiffInVars") is None:
+            state["ModDiffInVars"] = ModDiffIn()
+
+        o = ModDiff1(ModDiff, state["ModDiffInVars"], state["count"] - delaytime2)
         movs.update(WinModDiff1b=o[0])
-        ModDiffInVars = o[1]
-        md2, ModDiffInVars = ModDiff2(ModDiff, ModDiffInVars)
+        state["ModDiffInVars"] = o[1]
+        md2, state["ModDiffInVars"] = ModDiff2(ModDiff, state["ModDiffInVars"])
         movs.update(AvgModDiff1b=md2)
-        md3, ModDiffInVars = ModDiff3(ModDiff, ModDiffInVars)
+        md3, state["ModDiffInVars"] = ModDiff3(ModDiff, state["ModDiffInVars"])
         movs.update(AvgModDiff2b=md3)
+
         Ntotaltest = loudness(Etest, fC=fC, bark=BARK)
         Ntotalref = loudness(Eref, fC=fC, bark=BARK)
         noise = 0
@@ -140,9 +161,12 @@ def process_audio_block(
             state["internal_count"] += 1
             state["loudcounter"] += 1
         else:
-            levadaptin = LevPatAdaptIn(bark=BARK)
-            levadaptin.Ptest = pptest
-            levadaptin.Pref = ppref
+            # FIX: Use persistent LevPatAdaptIn from state
+            if state.get("LevPatAdaptIn") is None:
+                state["LevPatAdaptIn"] = LevPatAdaptIn(bark=BARK)
+            state["LevPatAdaptIn"].Ptest = pptest
+            state["LevPatAdaptIn"].Pref = ppref
+            # C code: levpatadapt.h defines T100=0.05
             lev = levpatadapt(
                 Etest,
                 Eref,
@@ -150,28 +174,52 @@ def process_audio_block(
                 hann=HANN,
                 fC=fC,
                 Tmin=0.008,
-                T100=0.03,
-                tmp=levadaptin,
+                T100=0.05,
+                tmp=state["LevPatAdaptIn"],
             )
-            nltemp = 0
-
-            n_l, nltemp = noiseloudness(
+            # FIX: Use persistent nltmp from state instead of resetting to 0
+            n_l, nltmp = noiseloudness(
                 Modtest,
                 Modref,
                 lev,
-                nltemp,
+                state.get("nltmp", 0),
                 state["count"] - delaytime2 - state["loudcounter"],
                 fC=fC,
             )
-            state["nltemp"] = nltemp
+            state["nltmp"] = nltmp
             movs.update(RmsNoiseLoudb=n_l)
 
     ADBb, PMtemp, Ptildetemp, Qsum, ndistorcedtmp = detprob(Etest, Eref, state)
     state.update(
-        {"PMtemp": PMtemp, "Ptildetemp": Ptildetemp, "ndistorcedtmp": ndistorcedtmp}
+        {"PMtemp": PMtemp, "Ptildetemp": Ptildetemp, "ndistorcedtmp": ndistorcedtmp, "QSum": Qsum}
     )
     movs.update(ADBb=ADBb)
     movs.update(MFPDb=PMtemp)
+
+    # Update MOVs with accumulated state values (like C implementation)
+    # These values persist across frames in the C code's global 'processed' struct
+    # Calculate TotalNMRb using the proper formula: 10*log10(nmrtmp / countboundary)
+    nmrtmp = state.get("nmrtmp", 0)
+    countboundary = max(state.get("countboundary", 1), 1)
+    if nmrtmp > 0:
+        total_nmr = 10 * np.log10(nmrtmp / countboundary)
+    else:
+        total_nmr = 0
+
+    # Calculate EHSb from accumulated state values
+    # EHSb = EHStmp * 1000.0 / countenergy (like C implementation)
+    ehstmp = state.get("EHStmp", 0)
+    countenergy = max(state.get("countenergy", 1), 1)
+    ehsb = (ehstmp * 1000.0 / countenergy) if ehstmp > 0 else 0
+
+    movs.update(
+        BandwidthRefb=state.get("BandwidthRefb", 0),
+        BandwidthTestb=state.get("BandwidthTestb", 0),
+        TotalNMRb=total_nmr,
+        RelDistFramesb=state.get("RelDistFramesb", 0),
+        EHSb=ehsb,
+    )
+
     # convert MOVs to a dict
     mov_dict = movs.to_dict()
     neural_out = neural(mov_dict)
@@ -205,6 +253,16 @@ def init_state():
         "QSum": 0,
         "ndistorcedtmp": 0,
         "Cffttmp": np.zeros(1024),
+        # Persistent state for ModDiff calculations
+        "ModDiffInVars": None,
+        # Persistent state for level-pattern adaptation
+        "LevPatAdaptIn": None,
+        # Persistent state for modulation calculations
+        "test_modulationIn": None,
+        "ref_modulationIn": None,
+        # Persistent state for time spreading
+        "Etmptest": None,
+        "Etmpref": None,
     }
 
 

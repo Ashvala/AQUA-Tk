@@ -1,9 +1,9 @@
 import math
 from math import log10, sqrt, cos, pi
 from scipy.fftpack import fft
-from utils import *
-import utils
-from utils import HANN as hann
+from .utils import *
+from . import utils
+from .utils import HANN as hann
 
 
 def bandwidth(processing,
@@ -66,25 +66,29 @@ def bandwidth(processing,
 
 
 def nmr(processing, state):
-    block_idx = state["count"]
+    # Use countboundary (frames within data boundary), not overall count
+    n = state["countboundary"]
     nmrtmp = state["nmrtmp"]
     PNoise = processing.ppnoise
     M = processing.Mref
     sum_val = np.sum(PNoise / M)
     sum_val /= BARK
     nmrtmp += sum_val
-    return 10 * np.log10(nmrtmp / block_idx), nmrtmp
+    return 10 * np.log10(nmrtmp / n), nmrtmp
 
 
 def reldistframes(processing, state):
-    block_idx = state["count"]
+    # Use countboundary, not overall count
+    n = state["countboundary"]
+    reldisttmp = state.get("RelDistTmp", 0)
     PNoise = processing.ppnoise
     M = processing.Mref
-    reldisttemp = 0
+    # Check if ANY band exceeds threshold (then increment by 1 and break)
     for k in range(BARK):
         if 10 * np.log10(PNoise[k] / M[k]) >= 1.5:
-            reldisttemp += 1
-    return reldisttemp / block_idx, reldisttemp
+            reldisttmp += 1
+            break
+    return reldisttmp / n, reldisttmp
 
 
 def energyth(test, ref, hann=2048, ENERGYLIMIT=8000):
@@ -101,52 +105,98 @@ def energyth(test, ref, hann=2048, ENERGYLIMIT=8000):
     return 0
 
 
-def harmstruct(processing, state, rate=16000, harmsamples=1024):
+def harmstruct(processing, state, rate=48000, harmsamples=256):
+    """Error Harmonic Structure calculation matching C implementation.
+
+    Args:
+        processing: Processing struct containing fftref and ffttest
+        state: State dict containing EHStmp and countenergy
+        rate: Sample rate in Hz
+        harmsamples: Number of harmonic samples (p in C code), calculated as:
+                    harmsamples = 1; while(harmsamples < (18000/rate)*(HANN/4)) harmsamples *= 2
+
+    Note: C implementation has AVGHANN defined, which means:
+    - First compute correlation C[i] WITHOUT Hann windowing
+    - Then subtract mean from C
+    - Finally apply Hann window
+
+    Also: C implementation has SKIPFRAME defined, which skips frames
+    with log(0) issues entirely (returns 0 and decrements n).
+
+    Also: C implementation has GETMAX defined, which uses simple max
+    search starting from index 1 (skipping DC component).
+    """
     fftref = processing.fftref
     ffttest = processing.ffttest
     EHStmp = state["EHStmp"]
-    Cffttmp = state["Cffttmp"]
-    n = state["count"]
-    # Initialize variables
-    F0 = np.zeros(harmsamples)
-    C = np.zeros(harmsamples)
-    hannwin = np.zeros(harmsamples)
-    Csum = 0
-    max_value = 0
-    PATCH = 0  # Assuming PATCH is not defined in the C code
+    n = state["countenergy"]  # Use countenergy, not count (only frames with enough energy)
 
-    # Calculate F0 values
-    for k in range(harmsamples):
+    p = harmsamples  # Using harmsamples as p to match C code
+
+    # Calculate F0 values (log of squared magnitude ratio)
+    # F0[k] = log10(fftref[k]^2) - log10(ffttest[k]^2)
+    # C code uses indices 0 to 2*p-2, need to ensure we don't go out of bounds
+    max_k = min(2 * p - 1, len(fftref))
+    F0 = np.zeros(2 * p - 1)
+
+    # SKIPFRAME behavior: if any value is 0, skip the entire frame
+    # C code: (*n)--; return 0;
+    # We decrement countenergy (the caller will increment it back, so net effect is 0)
+    # and return 0 for this frame's contribution
+    for k in range(max_k):
         if fftref[k] == 0 or ffttest[k] == 0:
-            F0[k] = 0
+            state["countenergy"] -= 1  # Will be incremented back by caller
+            return 0, EHStmp  # Return 0 for this frame, preserve EHStmp
         else:
             F0[k] = log10(fftref[k] ** 2) - log10(ffttest[k] ** 2)
 
-    # Calculate C values
-    for i in range(harmsamples):
-        num = 0
-        denoma = 0
-        denomb = 0
-        for k in range(harmsamples):
-            num += F0[k] * F0[(i + k) % harmsamples]  # Use modulo to stay within bounds
-            denoma += F0[k] ** 2
-            denomb += F0[(i + k) % harmsamples] ** 2  # Use modulo to stay within bounds
+    # Compute normalized correlation C[i] for i in [0, p)
+    # With AVGHANN defined: compute C WITHOUT Hann window first, accumulate Csum
+    C = np.zeros(p)
+    hannwin = np.zeros(p)
+    Csum = 0.0
 
-        hannwin[i] = 0.5 * sqrt(8.0 / 3.0) * (1.0 - cos(2.0 * pi * i / (harmsamples - 1.0)))
-        C[i] = num / (sqrt(denoma) * sqrt(denomb))
-        C[i] *= hannwin[i]
+    for i in range(p):
+        num = 0.0
+        denoma = 0.0
+        denomb = 0.0
+        for k in range(p):
+            num += F0[k] * F0[i + k]
+            denoma += F0[k] ** 2
+            denomb += F0[i + k] ** 2
+
+        hannwin[i] = 0.5 * sqrt(8.0 / 3.0) * (1.0 - cos(2.0 * pi * i / (p - 1.0)))
+
+        denom = sqrt(denoma) * sqrt(denomb)
+        if denom > 0:
+            C[i] = num / denom
+        else:
+            C[i] = 0.0
+
+        # With AVGHANN: do NOT apply hannwin here, just accumulate C for mean
+        # (without AVGHANN it would be: C[i] *= hannwin[i])
         Csum += C[i]
 
-    # Update C values
-    for i in range(harmsamples):
-        C[i] -= Csum / harmsamples
-        C[i] *= hannwin[i]
+    # With AVGHANN: subtract mean, THEN apply Hann window
+    for i in range(p):
+        C[i] -= Csum / p
+        C[i] *= hannwin[i]  # Apply Hann window after mean subtraction
 
     # Perform FFT on C values
-    Cfft = np.abs(fft(C)) ** 2
+    Cfft_complex = fft(C)
 
-    # Update EHStmp and calculate the return value
-    for k in range(1, harmsamples // 2):  # Start from 1 as per the C code
+    # Scale by 1/p and compute power spectrum (matching C code)
+    Cfft = np.zeros(p // 2)
+    for k in range(p // 2):
+        re = Cfft_complex[k].real / p
+        im = Cfft_complex[k].imag / p
+        Cfft[k] = re ** 2 + im ** 2
+
+    # With GETMAX defined: simple max search starting from index 1
+    # (PATCH=1, so i=0+PATCH=1, then for(k=i+1;...) means k starts at 1)
+    # Actually with GETMAX: i=0, then for(k=i+1;...) so k starts at 1
+    max_value = 0.0
+    for k in range(1, p // 2):
         if Cfft[k] > max_value:
             max_value = Cfft[k]
 
@@ -155,24 +205,66 @@ def harmstruct(processing, state, rate=16000, harmsamples=1024):
 
 
 def moddiff(Modtest, Modref, Etilderef, fC):
+    """Modulation difference calculation matching MATLAB PQmovModDiffB.m
+
+    MATLAB convention (from PQModPatt.m and PQmovModDiffB.m):
+    - M(1,:) = reference modulation
+    - M(2,:) = test modulation
+    - Denominator uses M(1) = reference
+    - negWt2B=0.1 applied when ref > test, full weight when test >= ref
+    - ERavg = reference average energy (Eavg(1,:))
+    """
     ModDiff1 = 0
     ModDiff2 = 0
     TempWt = 0
 
-    for k in range(utils.BARK):
-        ModDiff1 += np.abs(Modtest[k] - Modref[k]) / (1.0 + Modref[k])
-        if Modtest[k] > Modref[k]:
-            ModDiff2 += np.abs(Modtest[k] - Modref[k]) / (0.01 + Modref[k])
-        else:
-            ModDiff2 += 0.1 * np.abs(Modtest[k] - Modref[k]) / (0.01 + Modref[k])
+    # Internal noise threshold for weighting (e=0.3 exponent)
+    # This matches MATLAB's Ete calculation in PQmovModDiffB.m
+    e = 0.3
 
-        Pthres = np.power(10.0, 0.4 * 0.364 * np.power(fC[k] / 1000.0, -0.8))
-        TempWt += Etilderef[k] / (Etilderef[k] + np.power(Pthres, 0.3) * 100.0)
+    for k in range(utils.BARK):
+        # MATLAB: num1B = abs(M(1) - M(2))
+        num1B = np.abs(Modref[k] - Modtest[k])
+
+        # MATLAB: MD1B = num1B / (offset1B + M(1)) where offset1B=1.0
+        # M(1) = reference modulation
+        ModDiff1 += num1B / (1.0 + Modref[k])
+
+        # MATLAB asymmetric weighting (negWt2B = 0.1):
+        # if (M(1) > M(2)):  # ref > test
+        #     num2B = negWt2B * num1B  # 0.1 multiplier
+        # else:  # test >= ref
+        #     num2B = num1B  # full weight
+        if Modref[k] > Modtest[k]:
+            num2B = 0.1 * num1B  # Reduced weight when ref > test
+        else:
+            num2B = num1B  # Full weight when test >= ref
+        ModDiff2 += num2B / (0.01 + Modref[k])
+
+        # Temporal weighting: Wt += ERavg(m) / (ERavg(m) + levWt * Ete(m))
+        # ERavg = Fmem.Eavg(1,:) = reference average energy = Etilderef
+        # levWt = 100
+        # Ete = Et^e where Et = internal noise threshold
+        Et = PQIntNoise_single(fC[k])  # Internal noise for this band
+        Ete = np.power(Et, e)
+        TempWt += Etilderef[k] / (Etilderef[k] + 100.0 * Ete)
 
     ModDiff1 *= 100.0 / utils.BARK
     ModDiff2 *= 100.0 / utils.BARK
 
     return ModDiff1, ModDiff2, TempWt
+
+
+def PQIntNoise_single(fc):
+    """Calculate internal noise threshold for a single frequency.
+
+    From PQIntNoise.m (the simple version used in moddiff):
+    INdB = 1.456 * (fc/1000)^(-0.8)
+    EIN = 10^(INdB/10)
+    """
+    INdB = 1.456 * np.power(fc / 1000.0, -0.8)
+    EIN = np.power(10.0, INdB / 10.0)
+    return EIN
 
 
 class ModDiffOut:
@@ -230,23 +322,15 @@ def ModDiff2(mod_diff_out: ModDiffOut, mod_diff_in: ModDiffIn) -> (float, ModDif
 
 
 def ModDiff3(mod_diff_out: ModDiffOut, mod_diff_in: ModDiffIn) -> tuple:
-    # Extract values from namedtuple for calculations
-    mod_diff1 = mod_diff_out.ModDiff1
-    temp_wt = mod_diff_out.TempWt
-    num3 = mod_diff_in.num3
-    denom3 = mod_diff_in.denom3
-
-    # Update num3 and denom3
-    num3 += mod_diff1 * temp_wt
-    denom3 += temp_wt
+    # Use ModDiff2 (asymmetric version) for AvgModDiff2b, not ModDiff1
+    # This matches the C implementation: intmp->num3 += in.ModDiff2 * in.TempWt
+    mod_diff_in.num3 += mod_diff_out.ModDiff2 * mod_diff_out.TempWt
+    mod_diff_in.denom3 += mod_diff_out.TempWt
 
     # Calculate and return ModDiff3
-    mod_diff3_result = num3 / denom3
+    mod_diff3_result = mod_diff_in.num3 / mod_diff_in.denom3
 
-    # Update ModDiffIn namedtuple
-    mod_diff_in_new = ModDiffIn(num2=mod_diff_in.num2, denom2=mod_diff_in.denom2, num3=num3, denom3=denom3)
-
-    return mod_diff3_result, mod_diff_in_new
+    return mod_diff3_result, mod_diff_in
 
 
 def loudness(E, fC, bark, CONST=1.0):
@@ -345,36 +429,52 @@ def levpatadapt(Etest: np.ndarray, Eref: np.ndarray, rate: int,
 
 
 def noiseloudness(Modtest, Modref, lev, nltmp, n, fC):
-    THRESFAC0 = 0.15
+    """Noise loudness calculation matching MATLAB PQmovNLoudB.m
+
+    Key formula: s = sum((Et/stest)^e * ((1 + a/b)^e - 1))
+    where Et = internal noise threshold
+    """
+    THRESFAC0 = 0.15  # TF0 in MATLAB
     S0 = 0.5
-    E0 = 1.0
     ALPHA = 1.5
+    e = 0.23
 
     nl = 0
     for k in range(BARK):
-        Pthres = 10 ** (0.4 * 0.364 * (fC[k] / 1000) ** (-0.8))
-        stest = THRESFAC0 * Modtest[k] + S0
-        sref = THRESFAC0 * Modref[k] + S0
+        # Internal noise threshold Et (same formula as PQIntNoise.m)
+        # INdB = 1.456 * (f/1000)^(-0.8); Et = 10^(INdB/10)
+        INdB = 1.456 * (fC[k] / 1000) ** (-0.8)
+        Et = 10 ** (INdB / 10)
 
-        if lev['Eptest'][k] == 0 and lev['Epref'][k] == 0:
-            beta = 1.0
-        elif lev['Epref'][k] == 0:
-            beta = 0
+        # Modulation-weighted scaling factors
+        sref = THRESFAC0 * Modref[k] + S0
+        stest = THRESFAC0 * Modtest[k] + S0
+
+        # Beta calculation for masking
+        if lev['Epref'][k] == 0:
+            if lev['Eptest'][k] == 0:
+                beta = 1.0
+            else:
+                beta = 0
         else:
             beta = np.exp(-ALPHA * (lev['Eptest'][k] - lev['Epref'][k]) / lev['Epref'][k])
 
-        num = stest * lev['Eptest'][k] - sref * lev['Epref'][k]
-        denom = Pthres + sref * lev['Epref'][k] * beta
+        # MATLAB: a = max(stest * EP(2) - sref * EP(1), 0)
+        # where EP(1)=ref, EP(2)=test
+        a = max(stest * lev['Eptest'][k] - sref * lev['Epref'][k], 0)
 
-        if num < 0:
-            num = 0
+        # MATLAB: b = Et + sref * EP(1) * beta
+        b = Et + sref * lev['Epref'][k] * beta
 
-        nl += (Pthres / (E0 * stest)) ** 0.23 * ((1.0 + num / denom) ** 0.23 - 1.0)
+        # MATLAB: s = s + (Et/stest)^e * ((1 + a/b)^e - 1)
+        nl += (Et / stest) ** e * ((1.0 + a / b) ** e - 1.0)
 
-    nl *= 24.0 / utils.BARK
+    # Scale by 24/Nc
+    nl *= 24.0 / BARK
     if nl < 0:
         nl = 0
 
+    # RMS accumulation
     nltmp += nl ** 2
     return np.sqrt(nltmp / n), nltmp
 
@@ -384,6 +484,13 @@ s_f = lambda L: 5.95072 * p(6.39468 / L, 1.71332) + 9.01033 * p(10.0, -11.0) * p
 
 
 def detprob(Etestch1, Erefch1, state, hann=HANN, bark=BARK):
+    """Detection probability calculation matching C implementation (detprob.c).
+
+    Key differences from MATLAB version:
+    - L calculation: Always L = 0.3*max(ref,test) + 0.7*test (C code logic)
+    - q calculation: Uses integer truncation abs((int)e)/s (C code behavior)
+    - C1 constant: Uses C1=1.0 when defined (as in peaqb-fast common.h)
+    """
     prod = 1.0
     Q = 0.0
     Qsum = state["QSum"]
@@ -392,19 +499,38 @@ def detprob(Etestch1, Erefch1, state, hann=HANN, bark=BARK):
     ndistorcedtmp = state["ndistorcedtmp"]
 
     for k in range(bark):
-        Etildetestch1 = 10.0 * np.log10(Etestch1[k])
-        Etilderefch1 = 10.0 * np.log10(Erefch1[k])
+        Etildetestch1 = 10.0 * np.log10(Etestch1[k])  # Test in dB
+        Etilderefch1 = 10.0 * np.log10(Erefch1[k])    # Ref in dB
 
-        L = 0.3 * max(Etilderefch1, Etildetestch1) + 0.7 * Etildetestch1
-        if L > 0: 
+        # C code L calculation (detprob.c:43-48):
+        # if(Etilderefch1 > Etildetestch1) L = 0.3*Etilderefch1;
+        # else L = 0.3*Etildetestch1;
+        # L += 0.7*Etildetestch1;
+        if Etilderefch1 > Etildetestch1:
+            L = 0.3 * Etilderefch1
+        else:
+            L = 0.3 * Etildetestch1
+        L += 0.7 * Etildetestch1
+
+        if L > 0:
             s = s_f(L)
-        else: 
-            s = p(10, 30)
+        else:
+            s = p(10.0, 30.0)
+
+        # e = ref - test (same as C code)
         e = Etilderefch1 - Etildetestch1
-        b = 4.0 if Etilderefch1 > Etildetestch1 else 6.0
+
+        # b depends on sign of difference (C code detprob.c:59-62)
+        if Etilderefch1 > Etildetestch1:
+            b = 4.0
+        else:
+            b = 6.0
+
         a = p(10.0, np.log10(np.log10(2.0)) / b) / s
         pch1 = 1.0 - p(10.0, -p(a * e, b))
-        qch1 = abs(e) / s
+
+        # C code uses integer truncation: qch1 = abs((int)e)/s
+        qch1 = abs(int(e)) / s
 
         pbin = pch1
         qbin = qch1
@@ -425,8 +551,13 @@ def detprob(Etestch1, Erefch1, state, hann=HANN, bark=BARK):
         ADBb = -0.5
 
     c0 = p(0.9, hann / (2.0 * 1024.0))
-    c1 = p(0.99, hann / (2.0 * 1024.0))  # Assuming C1 is not defined
+    # C code: C1 is defined as 1.0 in common.h, so c1 = C1 = 1.0
+    c1 = 1.0
     Ptildetemp = (1.0 - c0) * P + Ptildetemp * c0
-    PMtmp = max(Ptildetemp, PMtmp * c1)
+    # C code: if(*Ptildetmp > (*PMtmp)*c1) *PMtmp = *Ptildetmp; else *PMtmp = (*PMtmp)*c1;
+    if Ptildetemp > PMtmp * c1:
+        PMtmp = Ptildetemp
+    else:
+        PMtmp = PMtmp * c1
 
     return ADBb, PMtmp, Ptildetemp, Qsum, ndistorcedtmp

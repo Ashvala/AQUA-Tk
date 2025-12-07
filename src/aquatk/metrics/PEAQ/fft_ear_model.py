@@ -1,8 +1,7 @@
 from math import exp
 import numpy as np
 from scipy.fft import fft
-from utils import p
-import pdb
+from .utils import p
 
 NORM=11361.301063573899
 FREQADAP=23.4375
@@ -32,8 +31,9 @@ def earmodelfft(x, channels, lp, fft_size=2048):
     ffte = np.zeros(len(hann_window)//2, dtype=np.float64)
     in_ = x*hann_window
     out = fft(in_)
-    out.real *= (fac/(fft_size//2))
-    out.imag *= (fac/(fft_size//2))
+    # C code: out[k].re *= (fac/hann) where hann=2048=fft_size
+    out.real *= (fac/fft_size)
+    out.imag *= (fac/fft_size)
     for k in range(0, fft_size//2):
         absfft[k] = np.sqrt(p(out[k].real, 2.0) + p(out[k].imag, 2.0))
         w = -0.6 * 3.64 * p(k * FREQADAP / 1000.0, -0.8) + \

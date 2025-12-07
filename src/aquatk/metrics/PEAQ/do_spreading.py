@@ -1,7 +1,6 @@
 import numpy as np
-from utils import p
-import pdb
-from utils import BARK as bark
+from .utils import p
+from .utils import BARK as bark
 
 # @numba.njit(fastmath=True, cache=True)
 def spreading(pp, fC, dz=0.25):

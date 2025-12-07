@@ -1,42 +1,71 @@
 import numpy as np
-from fft_ear_model import earmodelfft
-from create_bark import calculate_bark_bands
-from utils import p, BARK, HANN
-from numba import njit
+from .fft_ear_model import earmodelfft
+from .create_bark import calculate_bark_bands
+from .utils import p, BARK, HANN
 
 
-def critbandgroup(ffte, rate, hann=HANN, bark=87, bark_table=[]):
+def critbandgroup(ffte, rate, hann=HANN, bark=None, bark_table=[]):
     """
+    Vectorized critical band grouping.
+
     Args:
         ffte: The array of FFT coefficients.
         rate: The sampling rate of the audio signal.
         hann: The length of the Hann window used for FFT.
-        bark: The number of critical bands to calculate.
-        bark_table: A tuple of three arrays (fC, fL, fU) representing the center frequencies, lower frequency bounds, and upper frequency bounds of each critical band.
+        bark: The number of critical bands to calculate (inferred from bark_table if None).
+        bark_table: A tuple of three arrays (fC, fL, fU) representing the center frequencies,
+                    lower frequency bounds, and upper frequency bounds of each critical band.
 
     Returns:
         pe: An array of the calculated critical band energy values.
-
     """
-    p = lambda x, y: x ** y
     fC, fL, fU = bark_table
+    bark = len(fC)
     fres = rate / hann
+    num_bins = hann // 2
+
+    # Precompute squared FFT magnitudes
+    ffte_sq = ffte[:num_bins] ** 2
+
+    # Precompute bin frequency boundaries
+    k_vals = np.arange(num_bins)
+    k_lower = (k_vals - 0.5) * fres
+    k_upper = (k_vals + 0.5) * fres
+
+    # Convert to numpy arrays for vectorized operations
+    fL = np.asarray(fL)
+    fU = np.asarray(fU)
+
     pe = np.zeros(bark)
 
+    # For each band, compute contribution from all bins at once
     for i in range(bark):
-        for k in range(hann // 2):
-            k_lower = (k - 0.5) * fres
-            k_upper = (k + 0.5) * fres
-            if k_lower >= fL[i] and k_upper <= fU[i]:
-                pe[i] += p(ffte[k], 2.0)
-            elif k_lower < fL[i] and k_upper > fU[i]:
-                pe[i] += p(ffte[k], 2.0) * (fU[i] - fL[i]) / fres
-            elif k_lower < fL[i] and k_upper > fL[i]:
-                pe[i] += p(ffte[k], 2.0) * (k_upper - fL[i]) / fres
-            elif k_lower < fU[i] and k_upper > fU[i]:
-                pe[i] += p(ffte[k], 2.0) * (fU[i] - k_lower) / fres
+        fl_i = fL[i]
+        fu_i = fU[i]
 
-        pe[i] = max(pe[i], p(10.0, -12.0))
+        # Case 1: bin fully inside band
+        mask1 = (k_lower >= fl_i) & (k_upper <= fu_i)
+
+        # Case 2: band fully inside bin
+        mask2 = (k_lower < fl_i) & (k_upper > fu_i)
+        weight2 = (fu_i - fl_i) / fres
+
+        # Case 3: bin overlaps lower edge
+        mask3 = (k_lower < fl_i) & (k_upper > fl_i) & (k_upper <= fu_i)
+        weight3 = (k_upper - fl_i) / fres
+
+        # Case 4: bin overlaps upper edge
+        mask4 = (k_lower >= fl_i) & (k_lower < fu_i) & (k_upper > fu_i)
+        weight4 = (fu_i - k_lower) / fres
+
+        # Sum contributions
+        pe[i] = (np.sum(ffte_sq[mask1]) +
+                 np.sum(ffte_sq[mask2] * weight2) +
+                 np.sum(ffte_sq[mask3] * weight3[mask3]) +
+                 np.sum(ffte_sq[mask4] * weight4[mask4]))
+
+    # Apply minimum threshold
+    pe = np.maximum(pe, 1e-12)
 
     return pe
 
@@ -59,7 +88,8 @@ def AddIntNoise(pe, fC):
         result = AddIntNoise(pe, fC)
         # result will be [0.655, 0.753, 0.857]
     """
-    bark = BARK
+    # Use length of fC to determine bark count
+    bark = len(fC)
     for k in range(bark):
         Pthres = p(10.0, 0.4 * 0.364 * p(fC[k] / 1000.0, -0.8))
         pe[k] += Pthres

@@ -1,10 +1,10 @@
 import numpy as np
-from utils import BARK as bark
-from utils import module, HANN
+from .utils import BARK as bark
+from .utils import module, HANN
 from dataclasses import dataclass
-from numba import njit
 
-T100 = 0.03
+# C code: modulation.h defines T100=0.05 (different from timespreading which uses 0.03)
+T100 = 0.05
 Tmin = 0.008
 
 @dataclass

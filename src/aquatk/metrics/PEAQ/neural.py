@@ -16,7 +16,9 @@ wx = np.array([[-0.502657, 0.436333, 1.219602],
                [3.102889, 0.871260, -5.922878],
                [-1.051468, -0.939882, -0.142913],
                [-1.804679, -0.503610, -0.620456]])
-wy = np.array([-3.817048, 4.107138, 4.629582, -0.307594])
+wxb = np.array([-2.518254, 0.654841, -2.207228])  # Hidden layer biases
+wy = np.array([-3.817048, 4.107138, 4.629582])
+wyb = -0.307594  # Output layer bias
 bmin = -3.98
 bmax = 0.22
 I = 11  # Number of input neurons
@@ -47,12 +49,13 @@ def neural(processed):
     
     
     x_norm = (x - amin) / (amax - amin)
-    
 
-    sum1 = np.dot(x_norm, wx)  
+    # Hidden layer: add bias wxb before applying sigmoid
+    sum1 = np.dot(x_norm, wx) + wxb
     hidden_output = sigmoid(sum1)
-    sum2 = np.dot(wy[:-1], hidden_output)  
-    DI = wy[-1] + sum2  
+
+    # Output layer: add bias wyb
+    DI = wyb + np.dot(wy, hidden_output)
     ODG = bmin + (bmax - bmin) * sigmoid(DI)
     
     return {"DI": DI, "ODG": ODG}

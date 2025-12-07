@@ -4,6 +4,7 @@ import numpy as np
 from pathlib import Path
 import soundfile as sf
 from tqdm import tqdm
+import warnings
 
 @dataclass
 class PEAQResult:
@@ -43,128 +44,216 @@ class PEAQ:
         self.version = version
         self._init_state()
         
-    def _init_state(self):
-        """Initialize internal state variables"""
-        self.state = {
-            "countboundary": 1,
-            "RelDistFramesb": 0,
-            "nmrtmp": 0, 
-            "countenergy": 1,
-            "EHStmp": 0,
-            "nltmp": 0,
-            "noise": 0,
-            "internal_count": 0,
-            "loudcounter": 0,
-            "sumBandwidthRefb": 0,
-            "sumBandwidthTestb": 0,
-            "countref": 0,
-            "counttest": 0,
-            "BandwidthRefb": 0,
-            "BandwidthTestb": 0,
-            "count": 1,
-            "RelDistTmp": 0,
-            "CFFTtemp": 0,
-            "Ptildetemp": 0,
-            "PMtmp": 0,
-            "QSum": 0,
-            "ndistorcedtmp": 0,
-            "Cffttmp": np.zeros(1024),
-        }
+    def _init_state(self, num_channels: int = 1):
+        """Initialize internal state variables for each channel"""
+        # Import init_state from peaq_basic to ensure consistency
+        from aquatk.metrics.PEAQ.peaq_basic import init_state
+        self.num_channels = num_channels
+        self.states = [init_state() for _ in range(num_channels)]
+        # Keep backward compatibility
+        self.state = self.states[0]
 
-    def analyze_files(self, 
-                     reference_file: Union[str, Path], 
+    def analyze_files(self,
+                     reference_file: Union[str, Path],
                      test_file: Union[str, Path],
                      progress_bar: bool = True) -> PEAQResult:
         """
         Analyze audio quality between reference and test files
-        
+
+        Supports both mono and stereo audio. For stereo, each channel is
+        processed separately and MOVs are averaged (matching C implementation).
+
         Args:
             reference_file: Path to reference audio file
-            test_file: Path to test audio file  
+            test_file: Path to test audio file
             progress_bar: Whether to show progress bar during analysis
-            
+
         Returns:
             PEAQResult object containing analysis results
-            
+
         Raises:
             FileNotFoundError: If either audio file cannot be found
             ValueError: If audio files have different sample rates or channels
         """
         # Load audio files
-        ref_data, ref_blocks, ref_rate = self._load_audio(reference_file)
-        test_data, test_blocks, test_rate = self._load_audio(test_file)
-        
-        # Validate audio files
-        # self._validate_audio(ref_data, test_data, ref_rate, test_rate)
-        
-        # Process blocks
-        mov_list = []
-        di_list = []
-        odg_list = []
-        
-        iterator = tqdm(range(len(ref_blocks))) if progress_bar else range(len(ref_blocks))
-        
-        for i in iterator:
-            boundaryflag = self._check_boundary(ref_blocks[i], test_blocks[i], ref_rate)
-            _, _, movs, di, odg = self._process_block(
-                ref_blocks[i], 
-                test_blocks[i],
-                ref_rate,
-                boundaryflag,
-                test_rate
-            )
-            mov_list.append(movs)
-            di_list.append(di) 
-            odg_list.append(odg)
-            self.state["count"] += 1
-            
-        # Calculate final results
-        final_di = np.mean(di_list)
-        final_odg = np.mean(odg_list)
-        final_mov = self._aggregate_movs(mov_list)
-        
+        ref_data, ref_blocks_per_ch, ref_rate, ref_num_ch = self._load_audio(reference_file)
+        test_data, test_blocks_per_ch, test_rate, test_num_ch = self._load_audio(test_file)
+
+        # Validate channel count
+        if ref_num_ch != test_num_ch:
+            raise ValueError(f"Channel count mismatch: reference has {ref_num_ch}, test has {test_num_ch}")
+
+        num_channels = ref_num_ch
+
+        # Reset state for fresh analysis (one state per channel)
+        self._init_state(num_channels)
+
+        # Process each channel
+        channel_results = []
+
+        for ch in range(num_channels):
+            ref_blocks = ref_blocks_per_ch[ch]
+            test_blocks = test_blocks_per_ch[ch]
+            state = self.states[ch]
+
+            final_movs = None
+            final_di = None
+            final_odg = None
+
+            desc = f"Channel {ch+1}/{num_channels}" if num_channels > 1 else None
+            iterator = tqdm(range(len(ref_blocks)), desc=desc) if progress_bar else range(len(ref_blocks))
+
+            for i in iterator:
+                boundaryflag = self._check_boundary(ref_blocks[i], test_blocks[i], ref_rate)
+                _, _, movs, di, odg = self._process_block_with_state(
+                    ref_blocks[i],
+                    test_blocks[i],
+                    ref_rate,
+                    boundaryflag,
+                    test_rate,
+                    state
+                )
+                final_movs = movs
+                final_di = di
+                final_odg = odg
+                state["count"] += 1
+
+            channel_results.append({
+                'movs': final_movs,
+                'di': final_di,
+                'odg': final_odg
+            })
+
+        # Average MOVs across channels (like C implementation)
+        if num_channels == 1:
+            final_movs = channel_results[0]['movs']
+            final_di = channel_results[0]['di']
+            final_odg = channel_results[0]['odg']
+        else:
+            # Average the MOVs from both channels
+            final_movs = self._average_movs([r['movs'] for r in channel_results])
+            # Recompute DI and ODG from averaged MOVs
+            from aquatk.metrics.PEAQ.neural import neural
+            neural_out = neural(final_movs.to_dict())
+            final_di = neural_out['DI']
+            final_odg = neural_out['ODG']
+
         return PEAQResult(
             odg=final_odg,
             di=final_di,
-            mov=final_mov
+            mov=final_movs.to_dict() if final_movs else {}
         )
+
+    def _process_block_with_state(self, ref_block: np.ndarray, test_block: np.ndarray,
+                                   rate: int, boundaryflag: bool, test_rate: int, state: dict):
+        """Process a single block of audio with a specific state dict"""
+        from aquatk.metrics.PEAQ.peaq_basic import process_audio_block
+        return process_audio_block(
+            ref_block, test_block,
+            rate=rate,
+            state=state,
+            boundflag=boundaryflag,
+            test_rate=test_rate
+        )
+
+    def _average_movs(self, movs_list):
+        """Average MOVs from multiple channels"""
+        from aquatk.metrics.PEAQ.utils import MOV
+        avg_movs = MOV()
+        mov_names = ['WinModDiff1b', 'AvgModDiff1b', 'AvgModDiff2b', 'RmsNoiseLoudb',
+                     'BandwidthRefb', 'BandwidthTestb', 'TotalNMRb', 'RelDistFramesb',
+                     'ADBb', 'MFPDb', 'EHSb']
+        for name in mov_names:
+            values = [getattr(m, name) for m in movs_list]
+            setattr(avg_movs, name, sum(values) / len(values))
+        return avg_movs
     
     def analyze_arrays(self,
                       reference: np.ndarray,
-                      test: np.ndarray, 
+                      test: np.ndarray,
                       sample_rate: int,
                       progress_bar: bool = True) -> PEAQResult:
         """
         Analyze audio quality between reference and test numpy arrays
-        
+
+        Automatically resamples to 48 kHz if needed (ITU-R BS.1387 requirement).
+
         Args:
             reference: Reference audio as numpy array
             test: Test audio as numpy array
             sample_rate: Sample rate of audio
             progress_bar: Whether to show progress bar during analysis
-            
+
         Returns:
             PEAQResult object containing analysis results
-            
+
         Raises:
             ValueError: If arrays have different shapes or invalid data
         """
+        # Reset state for fresh analysis
+        self._init_state()
+
         test = test[:len(reference)]  # Ensure same length
         if reference.shape != test.shape:
             raise ValueError("Reference and test arrays must have same shape")
-          
+
+        # Resample to 48 kHz if needed (ITU-R BS.1387 requirement)
+        if sample_rate != PEAQ_SAMPLE_RATE:
+            warnings.warn(
+                f"Input sample rate {sample_rate} Hz differs from PEAQ standard {PEAQ_SAMPLE_RATE} Hz. "
+                f"Resampling to {PEAQ_SAMPLE_RATE} Hz.",
+                UserWarning
+            )
+            # Calculate new number of samples
+            num_samples = int(len(reference) * PEAQ_SAMPLE_RATE / sample_rate)
+            reference = signal.resample(reference, num_samples)
+            test = signal.resample(test, num_samples)
+            sample_rate = PEAQ_SAMPLE_RATE
+
+        # Convert to 16-bit integer scale to match C implementation
+        # Check if already in integer scale (values > 1.0)
+        if np.abs(reference).max() <= 1.0:
+            reference = (reference * 32768).astype(np.float64)
+            test = (test * 32768).astype(np.float64)
+
         ref_blocks = self._array_to_blocks(reference)
         test_blocks = self._array_to_blocks(test)
-        
+
         return self._analyze_blocks(ref_blocks, test_blocks, sample_rate, progress_bar)
 
-    def _load_audio(self, filepath: Union[str, Path]) -> Tuple[np.ndarray, List[np.ndarray], int]:
-        """Load and prepare audio file for analysis"""
+    def _load_audio(self, filepath: Union[str, Path]) -> Tuple[np.ndarray, List[List[np.ndarray]], int, int]:
+        """Load and prepare audio file for analysis.
+
+        Uses native sample rate (matching C implementation behavior).
+        Preserves stereo channels for proper PEAQ processing.
+
+        Returns:
+            Tuple of (data, blocks_per_channel, sample_rate, num_channels)
+        """
         data, rate = sf.read(str(filepath))
-        if len(data.shape) > 1:  # Stereo to mono
-            data = data.mean(axis=1)
-        blocks = self._array_to_blocks(data)
-        return data, blocks, rate
+
+        # Determine number of channels
+        if len(data.shape) == 1:
+            num_channels = 1
+            data = data.reshape(-1, 1)  # Make it (samples, 1) for consistency
+        else:
+            num_channels = data.shape[1]
+            if num_channels > 2:
+                raise ValueError(f"PEAQ supports up to 2 channels, got {num_channels}")
+
+        # No resampling - use native sample rate (matches C implementation)
+        # Note: ITU-R BS.1387 specifies 48 kHz, but peaqb-fast uses native rate
+
+        # Convert to 16-bit integer scale to match C implementation
+        # The C code reads raw PCM samples as signed integers
+        data = (data * 32768).astype(np.float64)
+
+        # Create blocks for each channel
+        blocks_per_channel = []
+        for ch in range(num_channels):
+            blocks_per_channel.append(self._array_to_blocks(data[:, ch]))
+
+        return data, blocks_per_channel, rate, num_channels
 
     def _validate_audio(self, ref_data: np.ndarray, test_data: np.ndarray, 
                        ref_rate: int, test_rate: int):
@@ -208,53 +297,37 @@ class PEAQ:
             test_rate=test_rate
         )
 
-    def _aggregate_movs(self, mov_list: List[Dict]) -> Dict[str, float]:
-        """Aggregate MOVs from all blocks"""
-        if not mov_list:
-            return {}
-            
-        # Get all MOV keys
-        mov_keys = mov_list[0].to_dict().keys()
-        
-        # Average each MOV across all blocks
-        final_movs = {}
-        for key in mov_keys:
-            values = [mov.to_dict()[key] for mov in mov_list]
-            final_movs[key] = np.mean(values)
-            
-        return final_movs
-    
     def _analyze_blocks(self, ref_blocks, test_blocks, sample_rate, progress_bar=True):
         """Analyze a list of audio blocks"""
-        mov_list = []
-        di_list = []
-        odg_list = []
-        
+        # Note: State should already be initialized by caller (analyze_files or analyze_arrays)
+        final_movs = None
+        final_di = None
+        final_odg = None
+
         iterator = tqdm(range(len(ref_blocks))) if progress_bar else range(len(ref_blocks))
-        
+
         for i in iterator:
             boundaryflag = self._check_boundary(ref_blocks[i], test_blocks[i], sample_rate)
             _, _, movs, di, odg = self._process_block(
-                ref_blocks[i], 
+                ref_blocks[i],
                 test_blocks[i],
                 sample_rate,
                 boundaryflag,
                 sample_rate  # Using same rate for test since we validated they match
             )
-            mov_list.append(movs)
-            di_list.append(di) 
-            odg_list.append(odg)
+            # Keep the last frame's values (like the C implementation)
+            final_movs = movs
+            final_di = di
+            final_odg = odg
             self.state["count"] += 1
-            
-        # Calculate final results
-        final_di = np.mean(di_list)
-        final_odg = np.mean(odg_list)
-        final_mov = self._aggregate_movs(mov_list)
-        
+
+        # Return the final frame's accumulated results
+        # The C implementation outputs the final frame's values which contain
+        # the accumulated/averaged MOVs computed over all frames
         return PEAQResult(
             odg=final_odg,
             di=final_di,
-            mov=final_mov
+            mov=final_movs.to_dict() if final_movs else {}
         )
 
 @dataclass
