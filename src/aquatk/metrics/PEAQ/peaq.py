@@ -418,6 +418,24 @@ class PEAQ2F(PEAQ):
         return PEAQ2FResult(score=score, movs=relevant_movs)
 
 
+def peaq(reference: Union[str, Path], test: Union[str, Path], progress_bar: bool = True) -> PEAQResult:
+    """
+    Convenience function to run PEAQ on two audio files.
+
+    Args:
+        reference: Path to reference audio file
+        test: Path to test audio file
+        progress_bar: Whether to show progress bar (default: True)
+
+    Returns:
+        PEAQResult with ODG, DI, and MOV values
+
+    Example:
+        >>> from aquatk.metrics.PEAQ import peaq
+        >>> result = peaq("reference.wav", "test.wav")
+        >>> print(result.odg)
+    """
+    return PEAQ().analyze_files(reference, test, progress_bar=progress_bar)
 
 
 if __name__ == "__main__":
