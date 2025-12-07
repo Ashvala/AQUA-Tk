@@ -1,4 +1,4 @@
-from utils import BARK as bark
+from .utils import BARK as bark
 import numpy as np
 
 def threshold(E, dz=0.25):

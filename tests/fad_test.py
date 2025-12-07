@@ -17,8 +17,6 @@ class FrechetUnitTests(unittest.TestCase):
         noise = np.random.normal(0, 1, len(sine))
         sine_noise = sine + noise
 
-    def
-
 
 if __name__ == "__main__":
     unittest.main()

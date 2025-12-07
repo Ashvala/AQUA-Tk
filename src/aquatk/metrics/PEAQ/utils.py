@@ -19,7 +19,7 @@ def safe_pow(x, y):
 p = lambda x, y: safe_pow(x, y)
 
 HANN = 2048
-BARK = 87
+BARK = 109  # Must match C implementation (80-18000 Hz at 0.25 Bark resolution)
 THRESHOLDDELAY = 0.050
 AVERAGINGDELAY = 0.5
 

@@ -1,7 +1,6 @@
 import numpy as np
-from utils import p
-import pdb
-from utils import BARK as bark
+from .utils import p
+from .utils import BARK as bark
 
 # @numba.njit(fastmath=True, cache=True)
 def spreading(pp, fC, dz=0.25):
@@ -14,7 +13,7 @@ def spreading(pp, fC, dz=0.25):
     """
 
     Sl = 27.0  # Lower spreading constant
-    pdb.set_trace()
+    # pdb.set_trace()
     # Initialize arrays
     pplog = np.zeros(bark)
     su1 = np.zeros(bark)
