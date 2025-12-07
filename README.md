@@ -44,7 +44,7 @@ AquaTK has optional extras for different embedding extractors and features:
 |-------|-------------|
 | `vggish` | VGGish embedding extractor (TensorFlow) |
 | `panns` | PANNs embedding extractor |
-| `openl3` | OpenL3 embedding extractor |
+| `openl3` | OpenL3 embedding extractor (requires Python <3.12) |
 | `ui` | Streamlit web interface |
 | `plotting` | Matplotlib for visualizations |
 | `runner` | Librosa for audio processing |

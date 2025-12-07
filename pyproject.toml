@@ -39,7 +39,7 @@ dev = [
     "pytest>=8.3.3",
 ]
 all = [
-    "aquatk[vggish,panns,openl3,ui,plotting,runner,dev]",
+    "aquatk[vggish,panns,ui,plotting,runner,dev]",
 ]
 
 [build-system]
