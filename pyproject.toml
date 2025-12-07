@@ -18,7 +18,6 @@ vggish = [
     "tensorflow",
     "tf_slim",
     "six",
-    "resampy",
 ]
 panns = [
     "panns_inference",
