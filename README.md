@@ -24,9 +24,46 @@ Currently implemented metrics:
 
 ## Installation
 
-You can install this repo using Git for now. PyPi support is coming soon:
+You can install this repo using Git for now. PyPi support is coming soon.
+
+**Using UV (recommended):**
 ```bash
-$ pip install git+https://github.com/ashvala/AQUA-tk.git
+uv add git+https://github.com/ashvala/AQUA-tk.git
+```
+
+**Using pip:**
+```bash
+pip install git+https://github.com/ashvala/AQUA-tk.git
+```
+
+### Optional Dependencies
+
+AquaTK has optional extras for different embedding extractors and features:
+
+| Extra | Description |
+|-------|-------------|
+| `vggish` | VGGish embedding extractor (TensorFlow) |
+| `panns` | PANNs embedding extractor |
+| `openl3` | OpenL3 embedding extractor |
+| `ui` | Streamlit web interface |
+| `plotting` | Matplotlib for visualizations |
+| `runner` | Librosa for audio processing |
+| `dev` | Development dependencies (pytest) |
+| `all` | All optional dependencies |
+
+Install with extras:
+```bash
+uv add "git+https://github.com/ashvala/AQUA-tk.git[vggish,panns]"
+# or install everything
+uv add "git+https://github.com/ashvala/AQUA-tk.git[all]"
+```
+
+### Development Setup
+
+```bash
+git clone https://github.com/ashvala/AQUA-tk.git
+cd AQUA-tk
+uv sync --all-extras
 ```
 ### Setting up VGGish weights: 
 

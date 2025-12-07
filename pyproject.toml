@@ -1,12 +1,46 @@
 [project]
 name = "aquatk"
 version = "0.1.0"
-description = "Add your description here"
+description = "Audio Quality Assessment Toolkit"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
     "numpy>=2.0.2",
+    "scipy",
+    "soundfile",
+    "tqdm",
+    "joblib",
+    "scikit-learn",
+]
+
+[project.optional-dependencies]
+vggish = [
+    "tensorflow",
+    "tf_slim",
+    "six",
+    "resampy",
+]
+panns = [
+    "panns_inference",
+]
+openl3 = [
+    "openl3",
+]
+ui = [
+    "streamlit",
+    "pandas",
+]
+plotting = [
+    "matplotlib",
+]
+runner = [
+    "librosa",
+]
+dev = [
     "pytest>=8.3.3",
+]
+all = [
+    "aquatk[vggish,panns,openl3,ui,plotting,runner,dev]",
 ]
 
 [build-system]
