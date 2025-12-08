@@ -86,6 +86,10 @@ vggish_extractor = VGGish(path_to_checkpoint=PATH_TO_CHECKPOINT, path_to_pca_par
 
 Contributions are welcome! Please feel free to open an issue or a pull request. This repository will only improve with your involvement! 
 
+## Stopgap docs
+
+This repo is indexed on [DeepWiki](https://deepwiki.com/Ashvala/AQUA-Tk/). It doesn't suck and should behave as something of a useful stopgap while more robust (and less verbose) documentation can be produced.
+
 ## Acknowledgements 
 
 This package would not exist if it weren't for the following: 
@@ -106,5 +110,6 @@ models and implementations: FAD and VGGish from Google are provided under the Ap
 for FAD is released under MIT license. PEAQb is released under the GPL license. 
 
 ----
+
 
 
